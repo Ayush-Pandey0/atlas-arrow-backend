@@ -424,8 +424,8 @@ const useInMemory = FORCE_DEMO_MODE || !process.env.MONGODB_URI;
 if (useInMemory) {
   // Safe defaults for demo mode
   process.env.JWT_SECRET = process.env.JWT_SECRET || 'dev_jwt_secret_change_me';
-  process.env.ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@atlasarrow.com';
-  process.env.ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+  process.env.ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@atlas.com';
+  process.env.ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'arrow123';
 }
 
 // We'll initialize DB once models are set up — track if we should call initializeDatabase
@@ -847,7 +847,10 @@ const isAdmin = (req, res, next) => {
 
 async function initializeDatabase() {
   try {
-    // Create or verify admin user
+    // Remove old admin if exists
+    await User.deleteOne({ email: 'admin@atlasarrow.com' });
+    
+    // Create or update admin user with new credentials
     const adminExists = await User.findOne({ email: process.env.ADMIN_EMAIL });
     if (!adminExists) {
       const hashedPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD, 10);
