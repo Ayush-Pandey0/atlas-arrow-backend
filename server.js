@@ -860,7 +860,13 @@ async function initializeDatabase() {
       });
       console.log(' Admin user created:', process.env.ADMIN_EMAIL);
     } else {
-      console.log(' Admin user exists:', process.env.ADMIN_EMAIL);
+      // Update admin password to ensure it matches env variable
+      const hashedPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD, 10);
+      await User.updateOne(
+        { email: process.env.ADMIN_EMAIL },
+        { $set: { password: hashedPassword, role: 'admin' } }
+      );
+      console.log(' Admin user password reset:', process.env.ADMIN_EMAIL);
     }
 
     // Log product count - DO NOT auto-generate products
