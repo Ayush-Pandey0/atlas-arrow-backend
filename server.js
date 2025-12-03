@@ -847,18 +847,29 @@ const isAdmin = (req, res, next) => {
 
 async function initializeDatabase() {
   try {
-    // Create admin user
-    const adminExists = await User.findOne({ email: process.env.ADMIN_EMAIL });
+    // Create admin user - use env vars or fallback to defaults
+    const adminEmail = process.env.ADMIN_EMAIL || 'admin@atlasarrow.com';
+    const adminPassword = process.env.ADMIN_PASSWORD || 'admin@123';
+    
+    const adminExists = await User.findOne({ email: adminEmail });
     if (!adminExists) {
-      const hashedPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD, 10);
+      const hashedPassword = await bcrypt.hash(adminPassword, 10);
       await User.create({
         fullname: 'Admin User',
-        email: process.env.ADMIN_EMAIL,
+        email: adminEmail,
         phone: '9999999999',
         password: hashedPassword,
         role: 'admin'
       });
-      console.log('✅ Admin user created:', process.env.ADMIN_EMAIL);
+      console.log('✅ Admin user created:', adminEmail);
+    } else {
+      // Ensure admin has correct password and role
+      const hashedPassword = await bcrypt.hash(adminPassword, 10);
+      await User.updateOne(
+        { email: adminEmail },
+        { $set: { password: hashedPassword, role: 'admin' } }
+      );
+      console.log('✅ Admin user verified:', adminEmail);
     }
 
     // Sample products - Always ensure we have products
