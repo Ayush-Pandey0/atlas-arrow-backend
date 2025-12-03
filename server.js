@@ -539,8 +539,9 @@ const orderSchema = new mongoose.Schema({
     pincode: String,
     country: String
   },
-  paymentMethod: { type: String, enum: ['COD', 'CARD', 'UPI', 'QR', 'NETBANKING'], default: 'CARD' },
+  paymentMethod: { type: String, enum: ['COD', 'CARD', 'UPI', 'QR', 'UPI_QR', 'NETBANKING'], default: 'CARD' },
   paymentStatus: { type: String, enum: ['pending', 'completed', 'failed'], default: 'pending' },
+  transactionId: { type: String, default: null },
   status: { 
     type: String, 
     enum: ['processing', 'confirmed', 'shipped', 'out_for_delivery', 'delivered', 'cancelled'],
@@ -1322,7 +1323,7 @@ app.delete('/api/cart/clear', authenticateToken, async (req, res) => {
 // Create order
 app.post('/api/orders', authenticateToken, async (req, res) => {
   try {
-    const { items, shippingAddress, paymentMethod, notes, couponCode, couponDiscount } = req.body;
+    const { items, shippingAddress, paymentMethod, notes, couponCode, couponDiscount, transactionId } = req.body;
 
     if (!items || items.length === 0) {
       return res.status(400).json({ message: 'No items in order' });
@@ -1362,8 +1363,9 @@ app.post('/api/orders', authenticateToken, async (req, res) => {
       items: orderItems,
       shippingAddress,
       paymentMethod: paymentMethod || 'CARD',
-      paymentStatus: 'completed',
-      status: 'confirmed',
+      transactionId: transactionId || null,
+      paymentStatus: transactionId ? 'pending' : 'completed',
+      status: transactionId ? 'processing' : 'confirmed',
       subtotal,
       tax,
       shipping,

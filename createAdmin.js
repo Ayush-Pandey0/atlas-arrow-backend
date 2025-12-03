@@ -1,64 +1,43 @@
-const mongoose = require('mongoose');
+﻿const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
-// Connect to MongoDB
-mongoose.connect('mongodb+srv://ayushpandey23_db_user:ayush123@cluster0.kanyaon.mongodb.net/atlas_arrow?retryWrites=true&w=majority');
+const MONGODB_URI = 'mongodb+srv://ayushpandey23_db_user:ayush123@cluster0.kanyaon.mongodb.net/atlasarrow?retryWrites=true&w=majority';
 
-// User Schema
 const userSchema = new mongoose.Schema({
-  name: String,
+  fullname: String,
   email: { type: String, unique: true },
-  password: String,
-  role: { type: String, default: 'user' },
-  avatar: String,
   phone: String,
-  address: {
-    street: String,
-    city: String,
-    state: String,
-    zipCode: String,
-    country: String
-  },
-  wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],
-  createdAt: { type: Date, default: Date.now }
+  password: String,
+  role: { type: String, default: 'customer' }
 });
 
 const User = mongoose.model('User', userSchema);
 
-async function createOrUpdateAdmin() {
+async function createAdmin() {
   try {
-    // Hash the password
-    const hashedPassword = await bcrypt.hash('admin@123', 10);
+    await mongoose.connect(MONGODB_URI);
+    console.log('Connected to MongoDB');
+
+    await User.deleteMany({ role: 'admin' });
+    console.log('Deleted old admin accounts');
+
+    const hashedPassword = await bcrypt.hash('arrow123', 10);
+    const admin = await User.create({
+      fullname: 'Admin User',
+      email: 'admin@atlas.com',
+      phone: '9999999999',
+      password: hashedPassword,
+      role: 'admin'
+    });
     
-    // Try to find existing admin
-    let admin = await User.findOne({ email: 'admin@atlasarrow.com' });
+    console.log('Admin created:', admin.email);
     
-    if (admin) {
-      // Update existing admin
-      admin.password = hashedPassword;
-      admin.role = 'admin';
-      await admin.save();
-      console.log('✅ Admin password updated successfully!');
-    } else {
-      // Create new admin
-      admin = new User({
-        name: 'Admin',
-        email: 'admin@atlasarrow.com',
-        password: hashedPassword,
-        role: 'admin'
-      });
-      await admin.save();
-      console.log('✅ Admin user created successfully!');
-    }
+    const found = await User.findOne({ email: 'admin@atlas.com' });
+    console.log('Verified:', found ? 'YES' : 'NO', 'Role:', found?.role);
     
-    console.log('📧 Email: admin@atlasarrow.com');
-    console.log('🔑 Password: admin@123');
-    
-    mongoose.connection.close();
+    await mongoose.disconnect();
   } catch (error) {
     console.error('Error:', error);
-    mongoose.connection.close();
   }
 }
-
-createOrUpdateAdmin();
+createAdmin();
