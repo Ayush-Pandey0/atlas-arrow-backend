@@ -416,17 +416,15 @@ const upload = multer({
 // Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Set admin credentials (always set these defaults)
+process.env.JWT_SECRET = process.env.JWT_SECRET || 'dev_jwt_secret_change_me';
+process.env.ADMIN_EMAIL = 'admin@atlas.com';
+process.env.ADMIN_PASSWORD = 'arrow123';
+
 // MongoDB Connection (or fallback to in-memory demo mode when MONGODB_URI is missing)
 // Set FORCE_DEMO_MODE to true to bypass MongoDB (useful when IP not whitelisted in Atlas)
 const FORCE_DEMO_MODE = false; // IP is now whitelisted in MongoDB Atlas
 const useInMemory = FORCE_DEMO_MODE || !process.env.MONGODB_URI;
-
-if (useInMemory) {
-  // Safe defaults for demo mode
-  process.env.JWT_SECRET = process.env.JWT_SECRET || 'dev_jwt_secret_change_me';
-  process.env.ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@atlas.com';
-  process.env.ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'arrow123';
-}
 
 // We'll initialize DB once models are set up — track if we should call initializeDatabase
 let shouldInitializeOnStart = false;
