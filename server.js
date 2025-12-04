@@ -142,7 +142,7 @@ const sendOrderStatusEmail = async (userEmail, userName, orderId, status, orderD
 
   try {
     const { data, error } = await resend.emails.send({
-      from: 'Atlas & Arrow <onboarding@resend.dev>',
+      from: 'Atlas & Arrow <noreply@atlasarrow.me>',
       to: userEmail,
       subject: statusInfo.subject,
       html: htmlContent
@@ -233,7 +233,7 @@ const sendWelcomeEmail = async (userEmail, userName) => {
 
   try {
     const { data, error } = await resend.emails.send({
-      from: 'Atlas & Arrow <onboarding@resend.dev>',
+      from: 'Atlas & Arrow <noreply@atlasarrow.me>',
       to: userEmail,
       subject: '🎉 Welcome to Atlas & Arrow - Your Tech Partner!',
       html: htmlContent
@@ -362,7 +362,7 @@ const sendOrderConfirmationEmail = async (userEmail, userName, orderId, orderDet
 
   try {
     const { data, error } = await resend.emails.send({
-      from: 'Atlas & Arrow <onboarding@resend.dev>',
+      from: 'Atlas & Arrow <noreply@atlasarrow.me>',
       to: userEmail,
       subject: `✅ Order Confirmed - #${orderId} | Atlas & Arrow`,
       html: htmlContent
