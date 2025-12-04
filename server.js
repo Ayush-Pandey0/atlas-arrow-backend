@@ -1051,6 +1051,11 @@ app.post('/api/auth/google', async (req, res) => {
         phone: '', // Google doesn't provide phone
         password: await bcrypt.hash(googleId + process.env.JWT_SECRET, 10) // Create a secure password
       });
+
+      // Send welcome email
+      sendWelcomeEmail(user.email, user.fullname).catch(err => 
+        console.log('Welcome email failed:', err.message)
+      );
     }
 
     // Generate JWT token
