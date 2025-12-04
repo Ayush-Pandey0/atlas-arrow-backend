@@ -1690,7 +1690,8 @@ app.put('/api/admin/orders/:id', authenticateToken, async (req, res) => {
       }
       
       // Send email notification asynchronously
-      sendOrderStatusEmail(emailToSend, nameToSend, order._id.toString().slice(-8).toUpperCase(), status, {
+      const statusLower = status.toLowerCase();
+      sendOrderStatusEmail(emailToSend, nameToSend, order._id.toString().slice(-8).toUpperCase(), statusLower, {
         tracking: order.tracking
       }).catch(err => console.log('Email send failed:', err.message));
     }
