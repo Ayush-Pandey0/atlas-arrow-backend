@@ -6,34 +6,23 @@ const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const { body, validationResult } = require('express-validator');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
-// ============ EMAIL CONFIGURATION ============
-// Configure email transporter (using Gmail SMTP with explicit settings)
-// Using explicit SMTP settings to work around Render timeout issues
-const emailTransporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false, // Use TLS
-  auth: {
-    user: process.env.EMAIL_USER || '',
-    pass: process.env.EMAIL_PASS || ''
-  },
-  connectionTimeout: 10000, // 10 seconds
-  greetingTimeout: 10000,
-  socketTimeout: 15000
-});
+// ============ EMAIL CONFIGURATION (RESEND API) ============
+// Using Resend API instead of SMTP (works on Render free tier)
+// Resend uses HTTP API, not blocked by Render's firewall
+const resend = new Resend(process.env.RESEND_API_KEY || '');
 
 // Log email configuration status on startup
-console.log('📧 Email Config:', process.env.EMAIL_USER ? `Configured (${process.env.EMAIL_USER})` : 'NOT CONFIGURED');
+console.log('📧 Email Config:', process.env.RESEND_API_KEY ? 'Resend API Configured ✓' : 'NOT CONFIGURED (set RESEND_API_KEY)');
 
 // Email sending function
 const sendOrderStatusEmail = async (userEmail, userName, orderId, status, orderDetails = {}) => {
-  // Skip if email credentials not configured
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    console.log('Email not configured - skipping notification');
+  // Skip if Resend API key not configured
+  if (!process.env.RESEND_API_KEY) {
+    console.log('Resend API not configured - skipping notification');
     return false;
   }
 
@@ -152,12 +141,18 @@ const sendOrderStatusEmail = async (userEmail, userName, orderId, status, orderD
   `;
 
   try {
-    await emailTransporter.sendMail({
-      from: `"Atlas & Arrow" <${process.env.EMAIL_USER}>`,
+    const { data, error } = await resend.emails.send({
+      from: 'Atlas & Arrow <onboarding@resend.dev>',
       to: userEmail,
       subject: statusInfo.subject,
       html: htmlContent
     });
+    
+    if (error) {
+      console.error('Failed to send email:', error.message);
+      return false;
+    }
+    
     console.log(`📧 Email sent to ${userEmail} for order ${orderId} - Status: ${status}`);
     return true;
   } catch (error) {
@@ -168,8 +163,8 @@ const sendOrderStatusEmail = async (userEmail, userName, orderId, status, orderD
 
 // Welcome email for new users
 const sendWelcomeEmail = async (userEmail, userName) => {
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    console.log('Email not configured - skipping welcome email');
+  if (!process.env.RESEND_API_KEY) {
+    console.log('Resend API not configured - skipping welcome email');
     return false;
   }
 
@@ -237,12 +232,18 @@ const sendWelcomeEmail = async (userEmail, userName) => {
   `;
 
   try {
-    await emailTransporter.sendMail({
-      from: `"Atlas & Arrow" <${process.env.EMAIL_USER}>`,
+    const { data, error } = await resend.emails.send({
+      from: 'Atlas & Arrow <onboarding@resend.dev>',
       to: userEmail,
       subject: '🎉 Welcome to Atlas & Arrow - Your Tech Partner!',
       html: htmlContent
     });
+    
+    if (error) {
+      console.error('Failed to send welcome email:', error.message);
+      return false;
+    }
+    
     console.log(`📧 Welcome email sent to ${userEmail}`);
     return true;
   } catch (error) {
@@ -253,8 +254,8 @@ const sendWelcomeEmail = async (userEmail, userName) => {
 
 // Order confirmation email
 const sendOrderConfirmationEmail = async (userEmail, userName, orderId, orderDetails) => {
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    console.log('Email not configured - skipping order confirmation email');
+  if (!process.env.RESEND_API_KEY) {
+    console.log('Resend API not configured - skipping order confirmation email');
     return false;
   }
 
@@ -360,12 +361,18 @@ const sendOrderConfirmationEmail = async (userEmail, userName, orderId, orderDet
   `;
 
   try {
-    await emailTransporter.sendMail({
-      from: `"Atlas & Arrow" <${process.env.EMAIL_USER}>`,
+    const { data, error } = await resend.emails.send({
+      from: 'Atlas & Arrow <onboarding@resend.dev>',
       to: userEmail,
       subject: `✅ Order Confirmed - #${orderId} | Atlas & Arrow`,
       html: htmlContent
     });
+    
+    if (error) {
+      console.error('Failed to send order confirmation email:', error.message);
+      return false;
+    }
+    
     console.log(`📧 Order confirmation email sent to ${userEmail} for order ${orderId}`);
     return true;
   } catch (error) {
