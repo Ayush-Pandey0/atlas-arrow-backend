@@ -21,6 +21,9 @@ const emailTransporter = nodemailer.createTransport({
   }
 });
 
+// Log email configuration status on startup
+console.log('📧 Email Config:', process.env.EMAIL_USER ? `Configured (${process.env.EMAIL_USER})` : 'NOT CONFIGURED');
+
 // Email sending function
 const sendOrderStatusEmail = async (userEmail, userName, orderId, status, orderDetails = {}) => {
   // Skip if email credentials not configured
@@ -934,9 +937,16 @@ app.post('/api/auth/register', [
     );
 
     // Send welcome email
-    sendWelcomeEmail(user.email, user.fullname).catch(err => 
-      console.log('Welcome email failed:', err.message)
-    );
+    console.log(`📧 Attempting to send welcome email to: ${user.email}`);
+    sendWelcomeEmail(user.email, user.fullname)
+      .then(result => {
+        if (result) {
+          console.log(`✅ Welcome email sent successfully to ${user.email}`);
+        } else {
+          console.log(`⚠️ Welcome email skipped for ${user.email}`);
+        }
+      })
+      .catch(err => console.log('❌ Welcome email failed:', err.message));
 
     res.status(201).json({
       message: 'Registration successful',
