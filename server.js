@@ -11,14 +11,19 @@ const { body, validationResult } = require('express-validator');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 // ============ EMAIL CONFIGURATION ============
-// Configure email transporter (using Gmail SMTP)
-// For production, use environment variables for credentials
+// Configure email transporter (using Gmail SMTP with explicit settings)
+// Using explicit SMTP settings to work around Render timeout issues
 const emailTransporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false, // Use TLS
   auth: {
-    user: process.env.EMAIL_USER || '', // Your Gmail address
-    pass: process.env.EMAIL_PASS || ''  // App password (not regular password)
-  }
+    user: process.env.EMAIL_USER || '',
+    pass: process.env.EMAIL_PASS || ''
+  },
+  connectionTimeout: 10000, // 10 seconds
+  greetingTimeout: 10000,
+  socketTimeout: 15000
 });
 
 // Log email configuration status on startup
