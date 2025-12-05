@@ -7,6 +7,64 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { Resend } = require('resend');
+const Review = require('./models/Review');
+const Stats = require('./models/Stats');
+// ============ API: Customer Reviews ============
+// Get all reviews
+app.get('/api/reviews', async (req, res) => {
+  try {
+    const reviews = await Review.find({}).sort({ createdAt: -1 });
+    res.json(reviews);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch reviews' });
+  }
+});
+
+// Add a new review
+app.post('/api/reviews', async (req, res) => {
+  try {
+    const { name, company, message, rating } = req.body;
+    if (!name || !message) return res.status(400).json({ error: 'Name and message are required' });
+    const review = new Review({ name, company, message, rating });
+    await review.save();
+    res.status(201).json(review);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to add review' });
+  }
+});
+
+// ============ API: Business Stats ============
+// Get business stats
+app.get('/api/stats', async (req, res) => {
+  try {
+    let stats = await Stats.findOne({});
+    if (!stats) {
+      stats = new Stats();
+      await stats.save();
+    }
+    res.json(stats);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch stats' });
+  }
+});
+
+// Update business stats (admin only, simple version)
+app.post('/api/stats', async (req, res) => {
+  try {
+    const { happyCustomers, productsSold, citiesServed, customerRating } = req.body;
+    let stats = await Stats.findOne({});
+    if (!stats) stats = new Stats();
+    if (happyCustomers !== undefined) stats.happyCustomers = happyCustomers;
+    if (productsSold !== undefined) stats.productsSold = productsSold;
+    if (citiesServed !== undefined) stats.citiesServed = citiesServed;
+    if (customerRating !== undefined) stats.customerRating = customerRating;
+    stats.updatedAt = new Date();
+    await stats.save();
+    res.json(stats);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update stats' });
+  }
+});
 const { body, validationResult } = require('express-validator');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
