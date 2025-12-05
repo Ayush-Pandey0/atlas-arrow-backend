@@ -9,13 +9,8 @@ const fs = require('fs');
 const { Resend } = require('resend');
 const Review = require('./models/Review');
 const Stats = require('./models/Stats');
-// ============ API: Customer Reviews ============
-// Get all reviews
-// (Moved after app initialization)
-
-// ============ API: Business Stats ============
-// (Moved after app initialization)
-// After app is initialized and middleware is set up:
+// ...existing code...
+// Place after app is initialized and middleware is set up
 // ============ API: Customer Reviews ============
 // Get all reviews
 app.get('/api/reviews', async (req, res) => {
