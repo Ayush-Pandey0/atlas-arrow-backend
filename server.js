@@ -7,66 +7,6 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { Resend } = require('resend');
-const Review = require('./models/Review');
-const Stats = require('./models/Stats');
-// ...existing code...
-// Place after app is initialized and middleware is set up
-// ============ API: Customer Reviews ============
-// Get all reviews
-app.get('/api/reviews', async (req, res) => {
-  try {
-    const reviews = await Review.find({}).sort({ createdAt: -1 });
-    res.json(reviews);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch reviews' });
-  }
-});
-
-// Add a new review
-app.post('/api/reviews', async (req, res) => {
-  try {
-    const { name, company, message, rating } = req.body;
-    if (!name || !message) return res.status(400).json({ error: 'Name and message are required' });
-    const review = new Review({ name, company, message, rating });
-    await review.save();
-    res.status(201).json(review);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to add review' });
-  }
-});
-
-// ============ API: Business Stats ============
-// Get business stats
-app.get('/api/stats', async (req, res) => {
-  try {
-    let stats = await Stats.findOne({});
-    if (!stats) {
-      stats = new Stats();
-      await stats.save();
-    }
-    res.json(stats);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch stats' });
-  }
-});
-
-// Update business stats (admin only, simple version)
-app.post('/api/stats', async (req, res) => {
-  try {
-    const { happyCustomers, productsSold, citiesServed, customerRating } = req.body;
-    let stats = await Stats.findOne({});
-    if (!stats) stats = new Stats();
-    if (happyCustomers !== undefined) stats.happyCustomers = happyCustomers;
-    if (productsSold !== undefined) stats.productsSold = productsSold;
-    if (citiesServed !== undefined) stats.citiesServed = citiesServed;
-    if (customerRating !== undefined) stats.customerRating = customerRating;
-    stats.updatedAt = new Date();
-    await stats.save();
-    res.json(stats);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to update stats' });
-  }
-});
 const { body, validationResult } = require('express-validator');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
@@ -2649,6 +2589,67 @@ app.delete('/api/admin/users/:id', authenticateToken, async (req, res) => {
     res.json({ success: true, message: 'User deleted' });
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+// ============ PUBLIC STATS ENDPOINT ============
+// Returns real stats for the homepage
+app.get('/api/stats', async (req, res) => {
+  try {
+    // Get total unique customers (users who have placed orders)
+    const orders = await Order.find({});
+    const uniqueCustomers = new Set(orders.map(o => o.user?.toString())).size;
+    
+    // Get total products sold (sum of all order item quantities)
+    let totalProductsSold = 0;
+    orders.forEach(order => {
+      (order.items || []).forEach(item => {
+        totalProductsSold += (item.quantity || 1);
+      });
+    });
+    
+    // Get unique cities from shipping addresses
+    const cities = new Set();
+    orders.forEach(order => {
+      if (order.shippingAddress?.city) {
+        cities.add(order.shippingAddress.city.toLowerCase().trim());
+      }
+    });
+    
+    // Calculate average rating from all product reviews
+    const products = await Product.find({});
+    let totalRating = 0;
+    let ratingCount = 0;
+    products.forEach(product => {
+      if (product.rating && product.rating > 0) {
+        totalRating += product.rating;
+        ratingCount++;
+      }
+      // Also check embedded reviews
+      (product.reviews || []).forEach(review => {
+        if (review.rating) {
+          totalRating += review.rating;
+          ratingCount++;
+        }
+      });
+    });
+    
+    const avgRating = ratingCount > 0 ? (totalRating / ratingCount) : 0;
+    
+    res.json({
+      totalCustomers: uniqueCustomers,
+      totalProductsSold: totalProductsSold,
+      citiesServed: cities.size,
+      avgRating: Math.round(avgRating * 10) / 10 // Round to 1 decimal
+    });
+  } catch (error) {
+    console.error('Error fetching stats:', error);
+    res.json({
+      totalCustomers: 0,
+      totalProductsSold: 0,
+      citiesServed: 0,
+      avgRating: 0
+    });
   }
 });
 
