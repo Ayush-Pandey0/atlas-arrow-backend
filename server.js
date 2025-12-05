@@ -11,6 +11,13 @@ const Review = require('./models/Review');
 const Stats = require('./models/Stats');
 // ============ API: Customer Reviews ============
 // Get all reviews
+// (Moved after app initialization)
+
+// ============ API: Business Stats ============
+// (Moved after app initialization)
+// After app is initialized and middleware is set up:
+// ============ API: Customer Reviews ============
+// Get all reviews
 app.get('/api/reviews', async (req, res) => {
   try {
     const reviews = await Review.find({}).sort({ createdAt: -1 });
