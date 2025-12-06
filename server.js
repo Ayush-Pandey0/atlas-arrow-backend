@@ -1578,7 +1578,7 @@ app.get('/api/admin/orders', authenticateToken, async (req, res) => {
         if (order.user) {
           const user = global.__INMEM__.users.find(u => u._id === order.user || u._id?.toString() === order.user?.toString());
           if (user) {
-            orderObj.user = { _id: user._id, fullname: user.fullname, email: user.email, phone: user.phone };
+            orderObj.user = { _id: user._id, fullname: user.fullname, email: user.email, phone: user.phone, address: user.address };
           }
         }
         return orderObj;
@@ -1594,7 +1594,7 @@ app.get('/api/admin/orders', authenticateToken, async (req, res) => {
         .sort({ createdAt: -1 })
         .skip((parseInt(page) - 1) * parseInt(limit))
         .limit(parseInt(limit))
-        .populate('user', 'fullname email phone')
+        .populate('user', 'fullname email phone address')
         .populate('items.product');
 
       total = await Order.countDocuments(query);
