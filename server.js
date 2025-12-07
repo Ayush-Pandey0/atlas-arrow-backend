@@ -2335,7 +2335,8 @@ app.post('/api/products/:id/reviews', authenticateToken, async (req, res) => {
       helpful: 0
     };
     
-    if (!product.reviews) {
+    // Ensure reviews is an array (fix for legacy data where it might be an object)
+    if (!product.reviews || !Array.isArray(product.reviews)) {
       product.reviews = [];
     }
     
