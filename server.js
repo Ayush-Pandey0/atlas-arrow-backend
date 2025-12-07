@@ -2300,7 +2300,17 @@ app.post('/api/wishlist/toggle/:productId', authenticateToken, async (req, res) 
 app.post('/api/products/:id/reviews', authenticateToken, async (req, res) => {
   try {
     const { rating, title, comment, text } = req.body;
-    const product = await Product.findById(req.params.id);
+    const productId = req.params.id;
+    
+    console.log('Adding review to product:', productId);
+    console.log('Review data:', { rating, title, comment: comment?.substring(0, 50) });
+    
+    // Validate ObjectId format
+    if (!productId || productId.length !== 24) {
+      return res.status(400).json({ message: 'Invalid product ID format' });
+    }
+    
+    const product = await Product.findById(productId);
     
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
