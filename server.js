@@ -13,12 +13,17 @@ const crypto = require('crypto');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 // ============ RAZORPAY CONFIGURATION ============
+// IMPORTANT: Keys must be set in environment variables, never hardcode!
+if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+  console.error('⚠️ RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET must be set in environment variables!');
+}
+
 const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID || 'RAZORPAY_KEY_REDACTED',
-  key_secret: process.env.RAZORPAY_KEY_SECRET || 'RAZORPAY_SECRET_REDACTED'
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_KEY_SECRET
 });
 
-console.log('💳 Razorpay Config:', process.env.RAZORPAY_KEY_ID ? 'Configured from ENV ✓' : 'Using default keys');
+console.log('💳 Razorpay Config:', process.env.RAZORPAY_KEY_ID ? 'Configured ✓' : 'NOT CONFIGURED!');
 
 // ============ EMAIL CONFIGURATION (RESEND API) ============
 // Using Resend API instead of SMTP (works on Render free tier)
