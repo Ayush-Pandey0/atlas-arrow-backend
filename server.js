@@ -503,6 +503,8 @@ const userSchema = new mongoose.Schema({
   googleId: { type: String },
   provider: { type: String, enum: ['local', 'google'], default: 'local' },
   wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],
+  resetPasswordOTP: { type: String },
+  resetPasswordExpires: { type: Date },
   createdAt: { type: Date, default: Date.now }
 });
 
@@ -1018,6 +1020,21 @@ app.post('/api/auth/login', [
       return res.status(401).json({ message: 'No account found with this email address' });
     }
 
+    // Check if user registered with Google and hasn't set a password
+    if (user.provider === 'google' && user.googleId) {
+      // Try the Google-generated password first
+      const googlePassword = user.googleId + process.env.JWT_SECRET;
+      const isGooglePassword = await bcrypt.compare(googlePassword, user.password);
+      
+      if (isGooglePassword) {
+        // User is trying to login with regular password but registered with Google
+        return res.status(401).json({ 
+          message: 'This account was created using Google Sign-In. Please use "Continue with Google" to login, or use "Forgot Password" to set a new password.',
+          isGoogleUser: true
+        });
+      }
+    }
+
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
       return res.status(401).json({ message: 'Incorrect password. Please try again.' });
@@ -1041,6 +1058,162 @@ app.post('/api/auth/login', [
       }
     });
   } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Forgot Password - Send OTP
+app.post('/api/auth/forgot-password', [
+  body('email').isEmail().withMessage('Enter a valid email address').normalizeEmail()
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ message: errors.array()[0].msg });
+  }
+
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ message: 'No account found with this email address' });
+    }
+
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // Save OTP to user (expires in 10 minutes)
+    user.resetPasswordOTP = otp;
+    user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+    await user.save();
+
+    // Send OTP email
+    if (process.env.RESEND_API_KEY) {
+      try {
+        await resend.emails.send({
+          from: 'Atlas & Arrow <noreply@atlasarrow.me>',
+          to: email,
+          subject: '🔐 Password Reset OTP - Atlas & Arrow',
+          html: `
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            </head>
+            <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4;">
+              <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+                <div style="background: linear-gradient(135deg, #2563eb 0%, #0ea5e9 100%); padding: 30px; text-align: center;">
+                  <h1 style="color: #ffffff; margin: 0; font-size: 28px;">🔐 Password Reset</h1>
+                </div>
+                <div style="padding: 40px 30px;">
+                  <p style="font-size: 16px; color: #333;">Hello <strong>${user.fullname}</strong>,</p>
+                  <p style="font-size: 16px; color: #666;">You requested to reset your password. Use the OTP below to proceed:</p>
+                  <div style="background: linear-gradient(135deg, #2563eb 0%, #0ea5e9 100%); padding: 25px; border-radius: 12px; text-align: center; margin: 30px 0;">
+                    <p style="color: #ffffff; font-size: 14px; margin: 0 0 10px 0;">Your OTP Code</p>
+                    <p style="color: #ffffff; font-size: 36px; font-weight: bold; letter-spacing: 8px; margin: 0;">${otp}</p>
+                  </div>
+                  <p style="font-size: 14px; color: #666; text-align: center;">⏰ This OTP is valid for <strong>10 minutes</strong></p>
+                  <p style="font-size: 14px; color: #999; margin-top: 30px;">If you didn't request this, please ignore this email or contact support if you have concerns.</p>
+                </div>
+                <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #eee;">
+                  <p style="color: #666; font-size: 12px; margin: 0;">© 2024 Atlas & Arrow. All rights reserved.</p>
+                </div>
+              </div>
+            </body>
+            </html>
+          `
+        });
+        console.log(`📧 Password reset OTP sent to ${email}`);
+      } catch (emailError) {
+        console.error('Failed to send OTP email:', emailError);
+      }
+    }
+
+    res.json({ 
+      message: 'OTP sent to your email address',
+      email: email.replace(/(.)(.*)(@.*)/, '$1***$3') // Mask email for security
+    });
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Verify OTP
+app.post('/api/auth/verify-otp', [
+  body('email').isEmail().withMessage('Enter a valid email address').normalizeEmail(),
+  body('otp').isLength({ min: 6, max: 6 }).withMessage('OTP must be 6 digits')
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ message: errors.array()[0].msg });
+  }
+
+  try {
+    const { email, otp } = req.body;
+    const user = await User.findOne({ 
+      email,
+      resetPasswordOTP: otp,
+      resetPasswordExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired OTP' });
+    }
+
+    // Generate a temporary reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    user.resetPasswordOTP = resetToken; // Reuse field to store reset token
+    user.resetPasswordExpires = Date.now() + 15 * 60 * 1000; // 15 minutes to set new password
+    await user.save();
+
+    res.json({ 
+      message: 'OTP verified successfully',
+      resetToken
+    });
+  } catch (error) {
+    console.error('Verify OTP error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Reset Password
+app.post('/api/auth/reset-password', [
+  body('email').isEmail().withMessage('Enter a valid email address').normalizeEmail(),
+  body('resetToken').notEmpty().withMessage('Reset token is required'),
+  body('newPassword').isLength({ min: 6 }).withMessage('Password must be at least 6 characters')
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ message: errors.array()[0].msg });
+  }
+
+  try {
+    const { email, resetToken, newPassword } = req.body;
+    const user = await User.findOne({ 
+      email,
+      resetPasswordOTP: resetToken,
+      resetPasswordExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired reset token. Please request a new OTP.' });
+    }
+
+    // Hash new password
+    user.password = await bcrypt.hash(newPassword, 10);
+    user.resetPasswordOTP = undefined;
+    user.resetPasswordExpires = undefined;
+    // Update provider to local if user sets their own password
+    if (user.provider === 'google') {
+      user.provider = 'local';
+    }
+    await user.save();
+
+    res.json({ message: 'Password reset successful. You can now login with your new password.' });
+  } catch (error) {
+    console.error('Reset password error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
