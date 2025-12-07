@@ -8,7 +8,17 @@ const path = require('path');
 const fs = require('fs');
 const { Resend } = require('resend');
 const { body, validationResult } = require('express-validator');
+const Razorpay = require('razorpay');
+const crypto = require('crypto');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
+
+// ============ RAZORPAY CONFIGURATION ============
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID || 'RAZORPAY_KEY_REDACTED',
+  key_secret: process.env.RAZORPAY_KEY_SECRET || 'RAZORPAY_SECRET_REDACTED'
+});
+
+console.log('💳 Razorpay Config:', process.env.RAZORPAY_KEY_ID ? 'Configured from ENV ✓' : 'Using default keys');
 
 // ============ EMAIL CONFIGURATION (RESEND API) ============
 // Using Resend API instead of SMTP (works on Render free tier)
@@ -1541,6 +1551,77 @@ app.get('/api/orders/track/:orderNumber', async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
+});
+
+// ==================== RAZORPAY PAYMENT ROUTES ====================
+
+// Create Razorpay order
+app.post('/api/payment/create-order', authenticateToken, async (req, res) => {
+  try {
+    const { amount, currency = 'INR', receipt, notes } = req.body;
+
+    if (!amount || amount < 1) {
+      return res.status(400).json({ message: 'Invalid amount' });
+    }
+
+    const options = {
+      amount: Math.round(amount * 100), // Razorpay expects amount in paise
+      currency,
+      receipt: receipt || `order_${Date.now()}`,
+      notes: notes || {}
+    };
+
+    const order = await razorpay.orders.create(options);
+    
+    res.json({
+      success: true,
+      order_id: order.id,
+      amount: order.amount,
+      currency: order.currency,
+      key_id: process.env.RAZORPAY_KEY_ID || 'RAZORPAY_KEY_REDACTED'
+    });
+  } catch (error) {
+    console.error('Razorpay order creation error:', error);
+    res.status(500).json({ message: 'Failed to create payment order', error: error.message });
+  }
+});
+
+// Verify Razorpay payment
+app.post('/api/payment/verify', authenticateToken, async (req, res) => {
+  try {
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      return res.status(400).json({ message: 'Missing payment verification details' });
+    }
+
+    // Verify signature
+    const key_secret = process.env.RAZORPAY_KEY_SECRET || 'RAZORPAY_SECRET_REDACTED';
+    const generated_signature = crypto
+      .createHmac('sha256', key_secret)
+      .update(razorpay_order_id + '|' + razorpay_payment_id)
+      .digest('hex');
+
+    if (generated_signature === razorpay_signature) {
+      res.json({
+        success: true,
+        message: 'Payment verified successfully',
+        payment_id: razorpay_payment_id
+      });
+    } else {
+      res.status(400).json({ success: false, message: 'Payment verification failed' });
+    }
+  } catch (error) {
+    console.error('Payment verification error:', error);
+    res.status(500).json({ message: 'Payment verification failed', error: error.message });
+  }
+});
+
+// Get Razorpay key for frontend
+app.get('/api/payment/key', (req, res) => {
+  res.json({ 
+    key_id: process.env.RAZORPAY_KEY_ID || 'RAZORPAY_KEY_REDACTED' 
+  });
 });
 
 // Admin: Get all orders
