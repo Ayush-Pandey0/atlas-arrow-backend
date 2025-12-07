@@ -2016,6 +2016,129 @@ app.get('/api/reviews', async (req, res) => {
   }
 });
 
+// Admin: Update review status (approve/reject)
+app.put('/api/admin/reviews/:productId/:reviewId/status', authenticateToken, async (req, res) => {
+  try {
+    const { productId, reviewId } = req.params;
+    const { status } = req.body;
+    
+    if (!['approved', 'rejected', 'pending'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status' });
+    }
+    
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+    
+    const review = product.reviews.id(reviewId);
+    if (!review) {
+      return res.status(404).json({ message: 'Review not found' });
+    }
+    
+    review.status = status;
+    await product.save();
+    
+    res.json({ message: `Review ${status}`, review });
+  } catch (error) {
+    console.error('Error updating review status:', error);
+    res.status(500).json({ message: 'Error updating review status' });
+  }
+});
+
+// Admin: Reply to a review
+app.post('/api/admin/reviews/:productId/:reviewId/reply', authenticateToken, async (req, res) => {
+  try {
+    const { productId, reviewId } = req.params;
+    const { reply } = req.body;
+    
+    if (!reply || !reply.trim()) {
+      return res.status(400).json({ message: 'Reply text is required' });
+    }
+    
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+    
+    const review = product.reviews.id(reviewId);
+    if (!review) {
+      return res.status(404).json({ message: 'Review not found' });
+    }
+    
+    review.reply = {
+      text: reply,
+      date: new Date(),
+      by: 'Admin'
+    };
+    await product.save();
+    
+    // Also send notification to user if they have an account
+    if (review.userId) {
+      try {
+        const user = await User.findById(review.userId);
+        if (user) {
+          // Add to user's notifications/messages
+          if (!user.notifications) user.notifications = [];
+          user.notifications.push({
+            type: 'review_reply',
+            title: 'Admin replied to your review',
+            message: `Your review on "${product.name}" received a reply: "${reply.substring(0, 100)}${reply.length > 100 ? '...' : ''}"`,
+            productId: productId,
+            reviewId: reviewId,
+            read: false,
+            createdAt: new Date()
+          });
+          await user.save();
+        }
+      } catch (notifError) {
+        console.error('Error sending notification:', notifError);
+      }
+    }
+    
+    res.json({ message: 'Reply added successfully', review });
+  } catch (error) {
+    console.error('Error adding reply:', error);
+    res.status(500).json({ message: 'Error adding reply' });
+  }
+});
+
+// Admin: Delete a review
+app.delete('/api/admin/reviews/:productId/:reviewId', authenticateToken, async (req, res) => {
+  try {
+    const { productId, reviewId } = req.params;
+    
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+    
+    const reviewIndex = product.reviews.findIndex(r => r._id.toString() === reviewId);
+    if (reviewIndex === -1) {
+      return res.status(404).json({ message: 'Review not found' });
+    }
+    
+    product.reviews.splice(reviewIndex, 1);
+    
+    // Recalculate product rating
+    if (product.reviews.length > 0) {
+      const totalRating = product.reviews.reduce((sum, r) => sum + r.rating, 0);
+      product.rating = totalRating / product.reviews.length;
+      product.numReviews = product.reviews.length;
+    } else {
+      product.rating = 0;
+      product.numReviews = 0;
+    }
+    
+    await product.save();
+    
+    res.json({ message: 'Review deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting review:', error);
+    res.status(500).json({ message: 'Error deleting review' });
+  }
+});
+
 // Get reviews for a specific product
 app.get('/api/products/:id/reviews', async (req, res) => {
   try {
