@@ -532,14 +532,20 @@ const productSchema = new mongoose.Schema({
   rating: { type: Number, default: 0, min: 0, max: 5 },
   reviews: [{
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     userName: { type: String },
     userEmail: { type: String },
     rating: { type: Number, required: true },
     title: { type: String },
     comment: { type: String },
+    text: { type: String },
     status: { type: String, default: 'approved' },
     helpful: { type: Number, default: 0 },
-    reply: { type: String },
+    reply: {
+      text: { type: String },
+      date: { type: Date },
+      by: { type: String }
+    },
     createdAt: { type: Date, default: Date.now }
   }],
   inStock: { type: Boolean, default: true },
@@ -2293,7 +2299,7 @@ app.post('/api/wishlist/toggle/:productId', authenticateToken, async (req, res) 
 // Add a review to a product
 app.post('/api/products/:id/reviews', authenticateToken, async (req, res) => {
   try {
-    const { rating, title, comment } = req.body;
+    const { rating, title, comment, text } = req.body;
     const product = await Product.findById(req.params.id);
     
     if (!product) {
@@ -2307,11 +2313,13 @@ app.post('/api/products/:id/reviews', authenticateToken, async (req, res) => {
     
     const review = {
       user: req.user.id,
+      userId: req.user.id,
       userName: userName,
       userEmail: userEmail,
-      rating: parseInt(rating),
+      rating: parseInt(rating) || 5,
       title: title || '',
-      comment,
+      comment: comment || text || '',
+      text: comment || text || '',
       createdAt: new Date(),
       status: 'approved',
       helpful: 0
@@ -2324,15 +2332,19 @@ app.post('/api/products/:id/reviews', authenticateToken, async (req, res) => {
     product.reviews.push(review);
     
     // Update product rating
-    const totalRating = product.reviews.reduce((sum, r) => sum + r.rating, 0);
-    product.rating = (totalRating / product.reviews.length).toFixed(1);
+    const totalRating = product.reviews.reduce((sum, r) => sum + (r.rating || 0), 0);
+    product.rating = product.reviews.length > 0 ? (totalRating / product.reviews.length).toFixed(1) : 0;
+    product.numReviews = product.reviews.length;
     
     await product.save();
     
-    res.status(201).json({ message: 'Review added successfully', review });
+    // Get the newly added review with its _id
+    const addedReview = product.reviews[product.reviews.length - 1];
+    
+    res.status(201).json({ message: 'Review added successfully', review: addedReview });
   } catch (error) {
     console.error('Error adding review:', error);
-    res.status(500).json({ message: 'Failed to add review' });
+    res.status(500).json({ message: 'Failed to add review', error: error.message });
   }
 });
 
