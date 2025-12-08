@@ -2327,8 +2327,13 @@ app.get('/api/products/:id/reviews', async (req, res) => {
       return res.status(404).json({ message: 'Product not found' });
     }
     
-    const reviews = product.reviews || [];
-    res.json({ reviews });
+    // Get only approved reviews and sort by newest first
+    const reviews = (product.reviews || [])
+      .filter(review => review.status === 'approved' || !review.status)
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    
+    // Return array directly (frontend expects array)
+    res.json(reviews);
   } catch (error) {
     console.error('Error fetching product reviews:', error);
     res.status(500).json({ message: 'Error fetching reviews' });
