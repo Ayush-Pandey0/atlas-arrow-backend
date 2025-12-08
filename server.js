@@ -3097,6 +3097,13 @@ app.delete('/api/admin/users/:id', authenticateToken, async (req, res) => {
 
 // ============ PUBLIC STATS ENDPOINT ============
 // Returns real stats for the homepage
+// Base values to start from (existing business stats before going online)
+const BASE_STATS = {
+  customers: 150,      // Starting from 150 happy customers
+  productsSold: 300,   // Starting from 300 products sold
+  citiesServed: 10     // Starting from 10 cities served
+};
+
 app.get('/api/stats', async (req, res) => {
   try {
     // Get total registered users (all customers)
@@ -3165,19 +3172,20 @@ app.get('/api/stats', async (req, res) => {
     
     const avgRating = ratingCount > 0 ? (totalRating / ratingCount) : 0; // Show 0 if no reviews
 
+    // Add base values to actual counts
     res.json({
-      totalCustomers: totalCustomers,
-      totalProductsSold: totalProductsSold,
-      citiesServed: cities.size || 1, // At least 1 city
+      totalCustomers: BASE_STATS.customers + totalCustomers,
+      totalProductsSold: BASE_STATS.productsSold + totalProductsSold,
+      citiesServed: BASE_STATS.citiesServed + cities.size,
       avgRating: Math.round(avgRating * 10) / 10, // Round to 1 decimal
       reviewCount: ratingCount // Include count so frontend knows if there are reviews
     });
   } catch (error) {
     console.error('Error fetching stats:', error);
     res.json({
-      totalCustomers: 0,
-      totalProductsSold: 0,
-      citiesServed: 0,
+      totalCustomers: BASE_STATS.customers,
+      totalProductsSold: BASE_STATS.productsSold,
+      citiesServed: BASE_STATS.citiesServed,
       avgRating: 0
     });
   }
