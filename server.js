@@ -3140,25 +3140,11 @@ app.get('/api/stats', async (req, res) => {
       }
     });
     
-    // Calculate average rating from all product reviews
-    const products = await Product.find({});
+    // Calculate average rating from actual customer reviews only
     let totalRating = 0;
     let ratingCount = 0;
-    products.forEach(product => {
-      if (product.rating && product.rating > 0) {
-        totalRating += product.rating;
-        ratingCount++;
-      }
-      // Also check embedded reviews
-      (product.reviews || []).forEach(review => {
-        if (review.rating) {
-          totalRating += review.rating;
-          ratingCount++;
-        }
-      });
-    });
     
-    // Also get standalone reviews
+    // Get standalone reviews (the main Review collection)
     const Review = mongoose.models.Review;
     if (Review) {
       const reviews = await Review.find({ status: 'approved' });
@@ -3169,6 +3155,17 @@ app.get('/api/stats', async (req, res) => {
         }
       });
     }
+    
+    // Also check embedded reviews in products (if any)
+    const products = await Product.find({});
+    products.forEach(product => {
+      (product.reviews || []).forEach(review => {
+        if (review.rating && review.status === 'approved') {
+          totalRating += review.rating;
+          ratingCount++;
+        }
+      });
+    });
     
     const avgRating = ratingCount > 0 ? (totalRating / ratingCount) : 0; // Show 0 if no reviews
 
