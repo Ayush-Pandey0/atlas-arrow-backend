@@ -3070,13 +3070,14 @@ app.get('/api/stats', async (req, res) => {
       });
     }
     
-    const avgRating = ratingCount > 0 ? (totalRating / ratingCount) : 4.5; // Default to 4.5 if no reviews
-    
+    const avgRating = ratingCount > 0 ? (totalRating / ratingCount) : 0; // Show 0 if no reviews
+
     res.json({
       totalCustomers: totalCustomers,
       totalProductsSold: totalProductsSold,
       citiesServed: cities.size || 1, // At least 1 city
-      avgRating: Math.round(avgRating * 10) / 10 // Round to 1 decimal
+      avgRating: Math.round(avgRating * 10) / 10, // Round to 1 decimal
+      reviewCount: ratingCount // Include count so frontend knows if there are reviews
     });
   } catch (error) {
     console.error('Error fetching stats:', error);

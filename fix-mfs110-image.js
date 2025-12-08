@@ -31,7 +31,7 @@ async function fixMFS110Image() {
 
     // Update with correct image URL
     // Using the correct MANTRA MFS110 image from reliable source
-    const correctImage = 'https://m.media-amazon.com/images/I/51Qv5QO2qML._SX679_.jpg';
+    const correctImage = 'https://5.imimg.com/data5/SELLER/Default/2023/3/295866507/DT/KV/SC/4aborwal/mantra-mfs110-fingerprint-scanner.jpg';
     
     const result = await Product.updateOne(
       { name: { $regex: /MFS110/i } },
