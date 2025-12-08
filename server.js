@@ -2696,6 +2696,99 @@ app.get('/api/admin/users-demo', async (req, res) => {
 
 // ==================== CONTACT MESSAGE ENDPOINTS ====================
 
+// Reply to a contact message via email (admin only)
+app.post('/api/admin/messages/reply', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Admin access required' });
+    }
+
+    const { messageId, to, name, subject, replyText } = req.body;
+
+    if (!to || !replyText) {
+      return res.status(400).json({ success: false, message: 'Email and reply text are required' });
+    }
+
+    // Send email via Resend
+    const emailHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      </head>
+      <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4;">
+        <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(135deg, #1e3a8a 0%, #7c3aed 100%); padding: 30px; text-align: center; border-radius: 12px 12px 0 0;">
+            <h1 style="color: white; margin: 0; font-size: 28px;">Atlas & Arrow</h1>
+            <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0;">Response to Your Inquiry</p>
+          </div>
+          <div style="background: white; padding: 30px; border-radius: 0 0 12px 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <p style="font-size: 16px; color: #333; margin-bottom: 20px;">Dear ${name || 'Customer'},</p>
+            <p style="font-size: 16px; color: #333; margin-bottom: 20px;">Thank you for contacting Atlas & Arrow. Here is our response to your inquiry:</p>
+            <div style="background: #f8f9fa; border-left: 4px solid #1e3a8a; padding: 20px; margin: 20px 0; border-radius: 0 8px 8px 0;">
+              <p style="font-size: 15px; color: #444; margin: 0; white-space: pre-wrap; line-height: 1.6;">${replyText}</p>
+            </div>
+            <p style="font-size: 14px; color: #666; margin-top: 25px;">If you have any further questions, feel free to reply to this email or contact us.</p>
+            <hr style="border: none; border-top: 1px solid #eee; margin: 25px 0;">
+            <p style="font-size: 13px; color: #888; margin: 0;">Best Regards,<br><strong>Atlas & Arrow Team</strong></p>
+          </div>
+          <div style="text-align: center; padding: 20px;">
+            <p style="font-size: 12px; color: #888; margin: 0;">© ${new Date().getFullYear()} Atlas & Arrow. All rights reserved.</p>
+            <p style="font-size: 12px; color: #888; margin: 5px 0 0 0;">Gorakhpur, Uttar Pradesh, India</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const emailResponse = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        from: 'Atlas & Arrow <onboarding@resend.dev>',
+        to: [to],
+        subject: subject || 'Response from Atlas & Arrow',
+        html: emailHtml
+      })
+    });
+
+    const emailResult = await emailResponse.json();
+
+    if (!emailResponse.ok) {
+      console.error('Resend API error:', emailResult);
+      return res.status(500).json({ success: false, message: 'Failed to send email' });
+    }
+
+    // Update message status to replied if messageId provided
+    if (messageId) {
+      if (useInMemory) {
+        const message = global.__INMEM__.contactMessages.find(m => m._id === messageId);
+        if (message) {
+          message.status = 'replied';
+          message.adminReply = replyText;
+          message.repliedAt = new Date();
+        }
+      } else {
+        await ContactMessage.findByIdAndUpdate(messageId, {
+          status: 'replied',
+          adminReply: replyText,
+          repliedAt: new Date()
+        });
+      }
+    }
+
+    console.log(`📧 Reply sent to ${to}`);
+    res.json({ success: true, message: 'Reply sent successfully' });
+  } catch (error) {
+    console.error('Error sending reply:', error);
+    res.status(500).json({ success: false, message: 'Failed to send reply' });
+  }
+});
+
 // Submit a contact message (public - no auth required)
 app.post('/api/contact', async (req, res) => {
   try {
