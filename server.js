@@ -1895,11 +1895,27 @@ app.put('/api/admin/orders/:id', authenticateToken, async (req, res) => {
 
     const previousStatus = order.status;
 
-    // Update status
-    if (status) {
+    // Initialize tracking if not exists
+    if (!order.tracking) {
+      order.tracking = { timeline: [] };
+    }
+    if (!order.tracking.timeline) {
+      order.tracking.timeline = [];
+    }
+
+    // Update tracking info first (location, carrier, etc.)
+    if (tracking) {
+      if (tracking.carrier) order.tracking.carrier = tracking.carrier;
+      if (tracking.trackingNumber) order.tracking.trackingNumber = tracking.trackingNumber;
+      if (tracking.currentLocation) order.tracking.currentLocation = tracking.currentLocation;
+      if (tracking.estimatedDelivery) order.tracking.estimatedDelivery = tracking.estimatedDelivery;
+    }
+
+    // Update status - only add timeline entry if status ACTUALLY CHANGED
+    if (status && status !== previousStatus) {
       order.status = status;
       
-      // Auto-add timeline entry
+      // Add timeline entry for the new status
       const timelineEntry = {
         status: status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' '),
         date: new Date(),
@@ -1908,21 +1924,7 @@ app.put('/api/admin/orders/:id', authenticateToken, async (req, res) => {
         completed: true
       };
       
-      if (!order.tracking) {
-        order.tracking = { timeline: [] };
-      }
-      if (!order.tracking.timeline) {
-        order.tracking.timeline = [];
-      }
       order.tracking.timeline.push(timelineEntry);
-    }
-
-    // Update tracking info
-    if (tracking) {
-      if (tracking.carrier) order.tracking.carrier = tracking.carrier;
-      if (tracking.trackingNumber) order.tracking.trackingNumber = tracking.trackingNumber;
-      if (tracking.currentLocation) order.tracking.currentLocation = tracking.currentLocation;
-      if (tracking.estimatedDelivery) order.tracking.estimatedDelivery = tracking.estimatedDelivery;
     }
 
     // Update payment status
@@ -1962,6 +1964,88 @@ app.put('/api/admin/orders/:id', authenticateToken, async (req, res) => {
     }
 
     res.json({ message: 'Order updated successfully', order });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Admin: Reset/Clear order timeline (to fix corrupted timelines)
+app.delete('/api/admin/orders/:id/timeline', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+
+    const order = await Order.findById(req.params.id);
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    // Reset timeline based on current status
+    const statuses = ['processing', 'confirmed', 'shipped', 'out_for_delivery', 'delivered'];
+    const currentStatusIndex = statuses.indexOf(order.status);
+    const currentLocation = order.tracking?.currentLocation || 'Atlas Arrow Warehouse';
+    
+    // Create clean timeline with only relevant entries
+    const newTimeline = [];
+    
+    // Always add Order Placed
+    newTimeline.push({
+      status: 'Order Placed',
+      date: order.createdAt,
+      location: 'Atlas Arrow Warehouse',
+      description: 'Your order has been placed',
+      completed: true
+    });
+    
+    if (currentStatusIndex >= 1) {
+      newTimeline.push({
+        status: 'Confirmed',
+        date: order.createdAt,
+        location: 'Atlas Arrow Warehouse',
+        description: 'Your order has been confirmed',
+        completed: true
+      });
+    }
+    
+    if (currentStatusIndex >= 2) {
+      newTimeline.push({
+        status: 'Shipped',
+        date: new Date(),
+        location: currentLocation,
+        description: 'Your order has been shipped and is on the way',
+        completed: true
+      });
+    }
+    
+    if (currentStatusIndex >= 3) {
+      newTimeline.push({
+        status: 'Out for delivery',
+        date: new Date(),
+        location: currentLocation,
+        description: 'Your order is out for delivery',
+        completed: true
+      });
+    }
+    
+    if (currentStatusIndex >= 4) {
+      newTimeline.push({
+        status: 'Delivered',
+        date: new Date(),
+        location: order.shippingAddress?.city || 'Your Address',
+        description: 'Your order has been delivered',
+        completed: true
+      });
+    }
+    
+    // Update the timeline
+    if (!order.tracking) {
+      order.tracking = {};
+    }
+    order.tracking.timeline = newTimeline;
+    await order.save();
+
+    res.json({ message: 'Timeline reset successfully', timeline: newTimeline });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
