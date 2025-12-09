@@ -2735,7 +2735,7 @@ app.post('/api/admin/messages/reply', authenticateToken, async (req, res) => {
           </div>
           <div style="text-align: center; padding: 20px;">
             <p style="font-size: 12px; color: #888; margin: 0;">© ${new Date().getFullYear()} Atlas & Arrow. All rights reserved.</p>
-            <p style="font-size: 12px; color: #888; margin: 5px 0 0 0;">Gorakhpur, Uttar Pradesh, India</p>
+            <p style="font-size: 12px; color: #888; margin: 5px 0 0 0;">Indira Nagar, Lucknow, Uttar Pradesh, India</p>
           </div>
         </div>
       </body>
