@@ -123,12 +123,12 @@ const sendOrderStatusEmail = async (userEmail, userName, orderId, status, orderD
       subject: statusInfo.subject,
       html: htmlContent
     });
-    
+
     if (error) {
       console.error('Failed to send email:', error.message);
       return false;
     }
-    
+
     console.log(`📧 Email sent to ${userEmail} for order ${orderId} - Status: ${status}`);
     return true;
   } catch (error) {
@@ -167,12 +167,12 @@ const sendWelcomeEmail = async (userEmail, userName) => {
       subject: '🎉 Welcome to Atlas & Arrow - Your Tech Partner!',
       html: htmlContent
     });
-    
+
     if (error) {
       console.error('Failed to send welcome email:', error.message);
       return false;
     }
-    
+
     console.log(`📧 Welcome email sent to ${userEmail}`);
     return true;
   } catch (error) {
@@ -201,7 +201,6 @@ const sendOrderConfirmationEmail = async (userEmail, userName, orderId, orderDet
   `).join('');
 
   const htmlContent = `
-    const htmlContent = `
       Hi ${userName},
 
       Your order has been confirmed and is being prepared for shipment.
@@ -230,12 +229,12 @@ const sendOrderConfirmationEmail = async (userEmail, userName, orderId, orderDet
       subject: `✅ Order Confirmed - #${orderId} | Atlas & Arrow`,
       html: htmlContent
     });
-    
+
     if (error) {
       console.error('Failed to send order confirmation email:', error.message);
       return false;
     }
-    
+
     console.log(`📧 Order confirmation email sent to ${userEmail} for order ${orderId}`);
     return true;
   } catch (error) {
@@ -313,18 +312,18 @@ if (!useInMemory) {
     useNewUrlParser: true,
     useUnifiedTopology: true
   })
-  .then(async () => {
-    console.log('✅ Connected to MongoDB');
-    mongoConnected = true;
-    // Initialize database with products after connection
-    try {
-      await initializeDatabase();
-      console.log('✅ Database initialized');
-    } catch (err) {
-      console.error('Error initializing database:', err);
-    }
-  })
-  .catch(err => console.error('❌ MongoDB connection error:', err));
+    .then(async () => {
+      console.log('✅ Connected to MongoDB');
+      mongoConnected = true;
+      // Initialize database with products after connection
+      try {
+        await initializeDatabase();
+        console.log('✅ Database initialized');
+      } catch (err) {
+        console.error('Error initializing database:', err);
+      }
+    })
+    .catch(err => console.error('❌ MongoDB connection error:', err));
 } else {
   console.warn('⚠️ MONGODB_URI not set — starting server in IN-MEMORY demo mode');
   // We'll initialize demo data using memory stores instead of Mongo
@@ -362,8 +361,8 @@ let User;
 const productSchema = new mongoose.Schema({
   name: { type: String, required: true },
   description: { type: String, required: true },
-  category: { 
-    type: String, 
+  category: {
+    type: String,
     required: true,
     enum: ['Biometric Devices', 'GPS Trackers', 'Printers', 'Aadhaar Kits', 'Business Equipment', 'Accessories']
   },
@@ -428,8 +427,8 @@ const orderSchema = new mongoose.Schema({
   paymentMethod: { type: String, enum: ['COD', 'CARD', 'UPI', 'QR', 'UPI_QR', 'NETBANKING'], default: 'CARD' },
   paymentStatus: { type: String, enum: ['pending', 'completed', 'failed'], default: 'pending' },
   transactionId: { type: String, default: null },
-  status: { 
-    type: String, 
+  status: {
+    type: String,
     enum: ['processing', 'confirmed', 'shipped', 'out_for_delivery', 'delivered', 'cancelled'],
     default: 'processing'
   },
@@ -501,7 +500,7 @@ const notificationSchema = new mongoose.Schema({
 let Notification;
 
 // In-memory fallback stores + small model-like wrappers
-const genId = () => Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+const genId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 const makeModelWrapper = (storeName) => ({
   async findOne(query) {
     if (!query) return null;
@@ -520,7 +519,7 @@ const makeModelWrapper = (storeName) => ({
     // Return a chainable object with select and populate methods
     return {
       then: (resolve) => resolve(item),
-      select: function(fields) {
+      select: function (fields) {
         if (!item) return Promise.resolve(null);
         // For simplicity, just return the item (excluding password if requested)
         if (fields && fields.includes('-password')) {
@@ -529,7 +528,7 @@ const makeModelWrapper = (storeName) => ({
         }
         return Promise.resolve(item);
       },
-      populate: function() {
+      populate: function () {
         // In-memory mode doesn't need population, just return the item
         return Promise.resolve(item);
       }
@@ -552,7 +551,7 @@ const makeModelWrapper = (storeName) => ({
     // Return a chainable object with select method
     return {
       then: (resolve) => resolve(item || null),
-      select: function(fields) {
+      select: function (fields) {
         if (!item) return Promise.resolve(null);
         // For simplicity, just return the item (excluding password if requested)
         if (fields && fields.includes('-password')) {
@@ -568,8 +567,8 @@ const makeModelWrapper = (storeName) => ({
     const item = { _id: genId(), createdAt: new Date(), ...obj };
     items.push(item);
     // attach save/populate methods on returned object to mimic mongoose docs
-    item.save = async function() { /* in-memory auto-saves */ };
-    item.populate = async function() { return this; };
+    item.save = async function () { /* in-memory auto-saves */ };
+    item.populate = async function () { return this; };
     return item;
   },
   async countDocuments() {
@@ -603,7 +602,7 @@ const makeModelWrapper = (storeName) => ({
     // Return a chainable object with sort and populate methods
     const chainable = {
       then: (resolve) => resolve(result),
-      sort: function(sortOption) {
+      sort: function (sortOption) {
         if (sortOption && Object.keys(sortOption).length > 0) {
           const key = Object.keys(sortOption)[0];
           const order = sortOption[key];
@@ -614,7 +613,7 @@ const makeModelWrapper = (storeName) => ({
         }
         return chainable; // Return chainable for further chaining
       },
-      populate: function() { 
+      populate: function () {
         return chainable; // Return chainable for further chaining
       }
     };
@@ -658,16 +657,16 @@ if (useInMemory) {
       if (val == null) return null;
       const cart = items.find(c => c.user === val) || null;
       if (cart) {
-        cart.save = async function() { /* noop */ };
-        cart.populate = async function() { return this; };
+        cart.save = async function () { /* noop */ };
+        cart.populate = async function () { return this; };
       }
       return cart;
     },
     async create(obj) {
       const items = global.__INMEM__.carts;
       const cart = { _id: genId(), updatedAt: Date.now(), ...obj };
-      cart.save = async function() { /* noop */ };
-      cart.populate = async function() { return this; };
+      cart.save = async function () { /* noop */ };
+      cart.populate = async function () { return this; };
       items.push(cart);
       return cart;
     },
@@ -734,7 +733,7 @@ async function initializeDatabase() {
   try {
     // Remove old admin if exists
     await User.deleteOne({ email: 'admin@atlasarrow.com' });
-    
+
     // Create or update admin user with new credentials
     const adminExists = await User.findOne({ email: process.env.ADMIN_EMAIL });
     if (!adminExists) {
@@ -760,7 +759,7 @@ async function initializeDatabase() {
     // Log product count - DO NOT auto-generate products
     const productCount = await Product.countDocuments();
     console.log(' Products in database:', productCount);
-    
+
   } catch (error) {
     console.error('Error initializing database:', error);
   }
@@ -789,10 +788,10 @@ app.post('/api/auth/register', [
   if (!errors.isEmpty()) {
     // Return first error message in a user-friendly format
     const firstError = errors.array()[0];
-    return res.status(400).json({ 
+    return res.status(400).json({
       message: firstError.msg,
       field: firstError.path,
-      errors: errors.array() 
+      errors: errors.array()
     });
   }
 
@@ -854,9 +853,9 @@ app.post('/api/auth/login', [
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     const firstError = errors.array()[0];
-    return res.status(400).json({ 
+    return res.status(400).json({
       message: firstError.msg,
-      field: firstError.path 
+      field: firstError.path
     });
   }
 
@@ -873,10 +872,10 @@ app.post('/api/auth/login', [
       // Try the Google-generated password first
       const googlePassword = user.googleId + process.env.JWT_SECRET;
       const isGooglePassword = await bcrypt.compare(googlePassword, user.password);
-      
+
       if (isGooglePassword) {
         // User is trying to login with regular password but registered with Google
-        return res.status(401).json({ 
+        return res.status(401).json({
           message: 'This account was created using Google Sign-In. Please use "Continue with Google" to login, or use "Forgot Password" to set a new password.',
           isGoogleUser: true
         });
@@ -929,7 +928,7 @@ app.post('/api/auth/forgot-password', [
 
     // Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    
+
     // Save OTP to user (expires in 10 minutes)
     user.resetPasswordOTP = otp;
     user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
@@ -978,7 +977,7 @@ app.post('/api/auth/forgot-password', [
       }
     }
 
-    res.json({ 
+    res.json({
       message: 'OTP sent to your email address',
       email: email.replace(/(.)(.*)(@.*)/, '$1***$3') // Mask email for security
     });
@@ -1000,7 +999,7 @@ app.post('/api/auth/verify-otp', [
 
   try {
     const { email, otp } = req.body;
-    const user = await User.findOne({ 
+    const user = await User.findOne({
       email,
       resetPasswordOTP: otp,
       resetPasswordExpires: { $gt: Date.now() }
@@ -1016,7 +1015,7 @@ app.post('/api/auth/verify-otp', [
     user.resetPasswordExpires = Date.now() + 15 * 60 * 1000; // 15 minutes to set new password
     await user.save();
 
-    res.json({ 
+    res.json({
       message: 'OTP verified successfully',
       resetToken
     });
@@ -1039,7 +1038,7 @@ app.post('/api/auth/reset-password', [
 
   try {
     const { email, resetToken, newPassword } = req.body;
-    const user = await User.findOne({ 
+    const user = await User.findOne({
       email,
       resetPasswordOTP: resetToken,
       resetPasswordExpires: { $gt: Date.now() }
@@ -1117,7 +1116,7 @@ app.post('/api/auth/google', async (req, res) => {
       });
 
       // Send welcome email
-      sendWelcomeEmail(user.email, user.fullname).catch(err => 
+      sendWelcomeEmail(user.email, user.fullname).catch(err =>
         console.log('Welcome email failed:', err.message)
       );
     }
@@ -1216,7 +1215,7 @@ app.get('/api/cart', authenticateToken, async (req, res) => {
     if (!cart) {
       cart = await Cart.create({ user: userId, items: [] });
     }
-    
+
     // Populate products manually for both in-memory and MongoDB modes
     if (cart.items && cart.items.length > 0) {
       const populatedItems = await Promise.all(
@@ -1235,7 +1234,7 @@ app.get('/api/cart', authenticateToken, async (req, res) => {
     } else {
       cart.items = [];
     }
-    
+
     res.json(cart);
   } catch (error) {
     console.error('Cart fetch error:', error);
@@ -1271,7 +1270,7 @@ app.post('/api/cart/add', authenticateToken, async (req, res) => {
 
     cart.updatedAt = Date.now();
     await cart.save();
-    
+
     // Populate products manually
     if (cart.items && cart.items.length > 0) {
       const populatedItems = await Promise.all(
@@ -1312,7 +1311,7 @@ app.put('/api/cart/update/:productId', authenticateToken, async (req, res) => {
       item.quantity = quantity;
       cart.updatedAt = Date.now();
       await cart.save();
-      
+
       // Populate products manually
       if (cart.items && cart.items.length > 0) {
         const populatedItems = await Promise.all(
@@ -1350,7 +1349,7 @@ app.delete('/api/cart/remove/:productId', authenticateToken, async (req, res) =>
     });
     cart.updatedAt = Date.now();
     await cart.save();
-    
+
     // Populate products manually
     if (cart.items && cart.items.length > 0) {
       const populatedItems = await Promise.all(
@@ -1406,7 +1405,7 @@ app.post('/api/orders', authenticateToken, async (req, res) => {
       if (!product) {
         return res.status(404).json({ message: `Product not found: ${item.product}` });
       }
-      
+
       const itemSubtotal = product.price * item.quantity;
       subtotal += itemSubtotal;
 
@@ -1452,9 +1451,9 @@ app.post('/api/orders', authenticateToken, async (req, res) => {
 
     // Send detailed order confirmation email
     sendOrderConfirmationEmail(
-      req.user.email, 
-      req.user.fullname || 'Customer', 
-      order._id.toString().slice(-8).toUpperCase(), 
+      req.user.email,
+      req.user.fullname || 'Customer',
+      order._id.toString().slice(-8).toUpperCase(),
       {
         items: orderItems.map(item => ({
           name: item.name,
@@ -1514,25 +1513,25 @@ app.get('/api/orders/:id', authenticateToken, async (req, res) => {
 app.put('/api/orders/:id/cancel', authenticateToken, async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
-    
+
     if (!order) {
       return res.status(404).json({ message: 'Order not found' });
     }
-    
+
     // Check if order belongs to user
     if (order.user.toString() !== req.user.id) {
       return res.status(403).json({ message: 'Access denied' });
     }
-    
+
     // Can only cancel if processing or confirmed
     const status = order.status?.toLowerCase();
     if (status !== 'processing' && status !== 'confirmed') {
       return res.status(400).json({ message: 'Cannot cancel order that has already been shipped' });
     }
-    
+
     order.status = 'cancelled';
     await order.save();
-    
+
     res.json({ message: 'Order cancelled successfully', order });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -1543,25 +1542,25 @@ app.put('/api/orders/:id/cancel', authenticateToken, async (req, res) => {
 app.put('/api/orders/:id/return', authenticateToken, async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
-    
+
     if (!order) {
       return res.status(404).json({ message: 'Order not found' });
     }
-    
+
     // Check if order belongs to user
     if (order.user.toString() !== req.user.id) {
       return res.status(403).json({ message: 'Access denied' });
     }
-    
+
     // Can only return if shipped or delivered
     const status = order.status?.toLowerCase();
     if (status !== 'shipped' && status !== 'delivered') {
       return res.status(400).json({ message: 'Can only return shipped or delivered orders' });
     }
-    
+
     order.status = 'return requested';
     await order.save();
-    
+
     res.json({ message: 'Return request submitted successfully', order });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -1604,7 +1603,7 @@ app.post('/api/payment/create-order', authenticateToken, async (req, res) => {
     };
 
     const order = await razorpay.orders.create(options);
-    
+
     res.json({
       success: true,
       order_id: order.id,
@@ -1651,8 +1650,8 @@ app.post('/api/payment/verify', authenticateToken, async (req, res) => {
 
 // Get Razorpay key for frontend
 app.get('/api/payment/key', (req, res) => {
-  res.json({ 
-    key_id: process.env.RAZORPAY_KEY_ID || 'RAZORPAY_KEY_REDACTED' 
+  res.json({
+    key_id: process.env.RAZORPAY_KEY_ID || 'RAZORPAY_KEY_REDACTED'
   });
 });
 
@@ -1670,21 +1669,21 @@ app.get('/api/admin/orders', authenticateToken, async (req, res) => {
     if (useInMemory) {
       // In-memory mode
       let allOrders = global.__INMEM__.orders || [];
-      
+
       // Filter by status if provided
       if (status && status !== 'all') {
         allOrders = allOrders.filter(o => o.status === status);
       }
-      
+
       // Sort by createdAt descending
       allOrders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-      
+
       total = allOrders.length;
-      
+
       // Paginate
       const skip = (parseInt(page) - 1) * parseInt(limit);
       orders = allOrders.slice(skip, skip + parseInt(limit));
-      
+
       // Populate user info from in-memory users
       orders = orders.map(order => {
         const orderObj = { ...order };
@@ -1762,7 +1761,7 @@ app.put('/api/admin/orders/:id', authenticateToken, async (req, res) => {
     // Update status - only add timeline entry if status ACTUALLY CHANGED
     if (status && status !== previousStatus) {
       order.status = status;
-      
+
       // Add timeline entry for the new status
       const timelineEntry = {
         status: status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' '),
@@ -1771,7 +1770,7 @@ app.put('/api/admin/orders/:id', authenticateToken, async (req, res) => {
         description: getStatusDescription(status),
         completed: true
       };
-      
+
       order.tracking.timeline.push(timelineEntry);
     }
 
@@ -1787,11 +1786,11 @@ app.put('/api/admin/orders/:id', authenticateToken, async (req, res) => {
     if (status && status !== previousStatus && order.user) {
       const userEmail = order.user.email || order.user;
       const userName = order.user.fullname || 'Customer';
-      
+
       // Get user email if order.user is just an ID
       let emailToSend = userEmail;
       let nameToSend = userName;
-      
+
       if (typeof order.user === 'string' || !order.user.email) {
         try {
           const userDoc = await User.findById(order.user);
@@ -1803,7 +1802,7 @@ app.put('/api/admin/orders/:id', authenticateToken, async (req, res) => {
           console.log('Could not fetch user for email');
         }
       }
-      
+
       // Send email notification asynchronously
       const statusLower = status.toLowerCase();
       sendOrderStatusEmail(emailToSend, nameToSend, order._id.toString().slice(-8).toUpperCase(), statusLower, {
@@ -1833,10 +1832,10 @@ app.delete('/api/admin/orders/:id/timeline', authenticateToken, async (req, res)
     const statuses = ['processing', 'confirmed', 'shipped', 'out_for_delivery', 'delivered'];
     const currentStatusIndex = statuses.indexOf(order.status);
     const currentLocation = order.tracking?.currentLocation || 'Atlas Arrow Warehouse';
-    
+
     // Create clean timeline with only relevant entries
     const newTimeline = [];
-    
+
     // Always add Order Placed
     newTimeline.push({
       status: 'Order Placed',
@@ -1845,7 +1844,7 @@ app.delete('/api/admin/orders/:id/timeline', authenticateToken, async (req, res)
       description: 'Your order has been placed',
       completed: true
     });
-    
+
     if (currentStatusIndex >= 1) {
       newTimeline.push({
         status: 'Confirmed',
@@ -1855,7 +1854,7 @@ app.delete('/api/admin/orders/:id/timeline', authenticateToken, async (req, res)
         completed: true
       });
     }
-    
+
     if (currentStatusIndex >= 2) {
       newTimeline.push({
         status: 'Shipped',
@@ -1865,7 +1864,7 @@ app.delete('/api/admin/orders/:id/timeline', authenticateToken, async (req, res)
         completed: true
       });
     }
-    
+
     if (currentStatusIndex >= 3) {
       newTimeline.push({
         status: 'Out for delivery',
@@ -1875,7 +1874,7 @@ app.delete('/api/admin/orders/:id/timeline', authenticateToken, async (req, res)
         completed: true
       });
     }
-    
+
     if (currentStatusIndex >= 4) {
       newTimeline.push({
         status: 'Delivered',
@@ -1885,7 +1884,7 @@ app.delete('/api/admin/orders/:id/timeline', authenticateToken, async (req, res)
         completed: true
       });
     }
-    
+
     // Update the timeline
     if (!order.tracking) {
       order.tracking = {};
@@ -1930,7 +1929,7 @@ app.put('/api/profile', authenticateToken, async (req, res) => {
   try {
     const { fullname, phone, address } = req.body;
     const updateData = {};
-    
+
     if (fullname) updateData.fullname = fullname;
     if (phone) updateData.phone = phone;
     if (address) {
@@ -1941,17 +1940,17 @@ app.put('/api/profile', authenticateToken, async (req, res) => {
         updateData.address = address;
       }
     }
-    
+
     const user = await User.findByIdAndUpdate(
       req.user.id,
       updateData,
       { new: true }
     ).select('-password');
-    
+
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    
+
     res.json({ message: 'Profile updated successfully', user });
   } catch (error) {
     console.error('Profile update error:', error);
@@ -1963,31 +1962,31 @@ app.put('/api/profile', authenticateToken, async (req, res) => {
 app.put('/api/profile/password', authenticateToken, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
-    
+
     if (!currentPassword || !newPassword) {
       return res.status(400).json({ message: 'Current and new password are required' });
     }
-    
+
     if (newPassword.length < 6) {
       return res.status(400).json({ message: 'New password must be at least 6 characters' });
     }
-    
+
     const user = await User.findById(req.user.id);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    
+
     // Verify current password
     const isMatch = await bcrypt.compare(currentPassword, user.password);
     if (!isMatch) {
       return res.status(400).json({ message: 'Current password is incorrect' });
     }
-    
+
     // Hash new password and save
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     user.password = hashedPassword;
     await user.save();
-    
+
     res.json({ message: 'Password changed successfully' });
   } catch (error) {
     console.error('Password change error:', error);
@@ -2005,17 +2004,17 @@ app.post('/api/profile/avatar', authenticateToken, upload.single('avatar'), asyn
     // Use full URL for avatar
     // Use relative path that works with the static middleware
     const avatarUrl = `/uploads/avatars/${req.file.filename}`;
-    
+
     const user = await User.findByIdAndUpdate(
       req.user.id,
       { avatar: avatarUrl },
       { new: true }
     ).select('-password');
-    
+
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    
+
     res.json({ message: 'Avatar uploaded successfully', avatar: avatarUrl, user });
   } catch (error) {
     console.error('Avatar upload error:', error);
@@ -2035,7 +2034,7 @@ app.post('/api/profile/avatar', authenticateToken, upload.single('avatar'), asyn
 app.put('/api/profile/change-password', authenticateToken, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
-    
+
     if (!currentPassword || !newPassword) {
       return res.status(400).json({ message: 'Current and new password are required' });
     }
@@ -2095,11 +2094,11 @@ app.get('/api/reviews', async (req, res) => {
         .sort({ createdAt: -1 });
       return res.json(reviews);
     }
-    
+
     // If no Review model, return empty array (reviews stored in products)
     const products = await Product.find({ 'reviews.0': { $exists: true } });
     const allReviews = [];
-    
+
     products.forEach(product => {
       (product.reviews || []).forEach(review => {
         allReviews.push({
@@ -2119,7 +2118,7 @@ app.get('/api/reviews', async (req, res) => {
         });
       });
     });
-    
+
     res.json(allReviews);
   } catch (error) {
     console.error('Error fetching reviews:', error);
@@ -2132,24 +2131,24 @@ app.put('/api/admin/reviews/:productId/:reviewId/status', authenticateToken, asy
   try {
     const { productId, reviewId } = req.params;
     const { status } = req.body;
-    
+
     if (!['approved', 'rejected', 'pending'].includes(status)) {
       return res.status(400).json({ message: 'Invalid status' });
     }
-    
+
     const product = await Product.findById(productId);
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
     }
-    
+
     const review = product.reviews.id(reviewId);
     if (!review) {
       return res.status(404).json({ message: 'Review not found' });
     }
-    
+
     review.status = status;
     await product.save();
-    
+
     res.json({ message: `Review ${status}`, review });
   } catch (error) {
     console.error('Error updating review status:', error);
@@ -2162,28 +2161,28 @@ app.post('/api/admin/reviews/:productId/:reviewId/reply', authenticateToken, asy
   try {
     const { productId, reviewId } = req.params;
     const { reply } = req.body;
-    
+
     if (!reply || !reply.trim()) {
       return res.status(400).json({ message: 'Reply text is required' });
     }
-    
+
     const product = await Product.findById(productId);
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
     }
-    
+
     const review = product.reviews.id(reviewId);
     if (!review) {
       return res.status(404).json({ message: 'Review not found' });
     }
-    
+
     review.reply = {
       text: reply,
       date: new Date(),
       by: 'Admin'
     };
     await product.save();
-    
+
     // Also send notification to user if they have an account
     if (review.userId) {
       try {
@@ -2206,7 +2205,7 @@ app.post('/api/admin/reviews/:productId/:reviewId/reply', authenticateToken, asy
         console.error('Error sending notification:', notifError);
       }
     }
-    
+
     res.json({ message: 'Reply added successfully', review });
   } catch (error) {
     console.error('Error adding reply:', error);
@@ -2218,19 +2217,19 @@ app.post('/api/admin/reviews/:productId/:reviewId/reply', authenticateToken, asy
 app.delete('/api/admin/reviews/:productId/:reviewId', authenticateToken, async (req, res) => {
   try {
     const { productId, reviewId } = req.params;
-    
+
     const product = await Product.findById(productId);
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
     }
-    
+
     const reviewIndex = product.reviews.findIndex(r => r._id.toString() === reviewId);
     if (reviewIndex === -1) {
       return res.status(404).json({ message: 'Review not found' });
     }
-    
+
     product.reviews.splice(reviewIndex, 1);
-    
+
     // Recalculate product rating
     if (product.reviews.length > 0) {
       const totalRating = product.reviews.reduce((sum, r) => sum + r.rating, 0);
@@ -2240,9 +2239,9 @@ app.delete('/api/admin/reviews/:productId/:reviewId', authenticateToken, async (
       product.rating = 0;
       product.numReviews = 0;
     }
-    
+
     await product.save();
-    
+
     res.json({ message: 'Review deleted successfully' });
   } catch (error) {
     console.error('Error deleting review:', error);
@@ -2254,16 +2253,16 @@ app.delete('/api/admin/reviews/:productId/:reviewId', authenticateToken, async (
 app.get('/api/products/:id/reviews', async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
-    
+
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
     }
-    
+
     // Get only approved reviews and sort by newest first
     const reviews = (product.reviews || [])
       .filter(review => review.status === 'approved' || !review.status)
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    
+
     // Return array directly (frontend expects array)
     res.json(reviews);
   } catch (error) {
@@ -2293,30 +2292,30 @@ app.post('/api/wishlist/:productId', authenticateToken, async (req, res) => {
   try {
     const { productId } = req.params;
     const user = await User.findById(req.user.id);
-    
+
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    
+
     // Check if product exists
     const product = await Product.findById(productId);
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
     }
-    
+
     // Initialize wishlist if not exists
     if (!user.wishlist) {
       user.wishlist = [];
     }
-    
+
     // Check if already in wishlist
     if (user.wishlist.includes(productId)) {
       return res.status(400).json({ message: 'Product already in wishlist' });
     }
-    
+
     user.wishlist.push(productId);
     await user.save();
-    
+
     res.json({ message: 'Added to wishlist', wishlist: user.wishlist });
   } catch (error) {
     console.error('Error adding to wishlist:', error);
@@ -2329,14 +2328,14 @@ app.delete('/api/wishlist/:productId', authenticateToken, async (req, res) => {
   try {
     const { productId } = req.params;
     const user = await User.findById(req.user.id);
-    
+
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    
+
     user.wishlist = (user.wishlist || []).filter(id => id.toString() !== productId);
     await user.save();
-    
+
     res.json({ message: 'Removed from wishlist', wishlist: user.wishlist });
   } catch (error) {
     console.error('Error removing from wishlist:', error);
@@ -2348,14 +2347,14 @@ app.delete('/api/wishlist/:productId', authenticateToken, async (req, res) => {
 app.delete('/api/wishlist', authenticateToken, async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
-    
+
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    
+
     user.wishlist = [];
     await user.save();
-    
+
     res.json({ message: 'Wishlist cleared' });
   } catch (error) {
     console.error('Error clearing wishlist:', error);
@@ -2368,37 +2367,37 @@ app.post('/api/wishlist/toggle/:productId', authenticateToken, async (req, res) 
   try {
     const { productId } = req.params;
     const user = await User.findById(req.user.id);
-    
+
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    
+
     // Check if product exists
     const product = await Product.findById(productId);
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
     }
-    
+
     if (!user.wishlist) {
       user.wishlist = [];
     }
-    
+
     const index = user.wishlist.findIndex(id => id.toString() === productId);
     let added = false;
-    
+
     if (index > -1) {
       user.wishlist.splice(index, 1);
     } else {
       user.wishlist.push(productId);
       added = true;
     }
-    
+
     await user.save();
-    
-    res.json({ 
+
+    res.json({
       message: added ? 'Added to wishlist' : 'Removed from wishlist',
       added,
-      wishlist: user.wishlist 
+      wishlist: user.wishlist
     });
   } catch (error) {
     console.error('Error toggling wishlist:', error);
@@ -2411,26 +2410,26 @@ app.post('/api/products/:id/reviews', authenticateToken, async (req, res) => {
   try {
     const { rating, title, comment, text } = req.body;
     const productId = req.params.id;
-    
+
     console.log('Adding review to product:', productId);
     console.log('Review data:', { rating, title, comment: comment?.substring(0, 50) });
-    
+
     // Validate ObjectId format
     if (!productId || productId.length !== 24) {
       return res.status(400).json({ message: 'Invalid product ID format' });
     }
-    
+
     const product = await Product.findById(productId);
-    
+
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
     }
-    
+
     // Get user details for the review
     const user = await User.findById(req.user.id);
     const userName = user?.fullname || 'Customer';
     const userEmail = user?.email || req.user.email;
-    
+
     const review = {
       user: req.user.id,
       userId: req.user.id,
@@ -2444,24 +2443,24 @@ app.post('/api/products/:id/reviews', authenticateToken, async (req, res) => {
       status: 'approved',
       helpful: 0
     };
-    
+
     // Ensure reviews is an array (fix for legacy data where it might be an object)
     if (!product.reviews || !Array.isArray(product.reviews)) {
       product.reviews = [];
     }
-    
+
     product.reviews.push(review);
-    
+
     // Update product rating
     const totalRating = product.reviews.reduce((sum, r) => sum + (r.rating || 0), 0);
     product.rating = product.reviews.length > 0 ? (totalRating / product.reviews.length).toFixed(1) : 0;
     product.numReviews = product.reviews.length;
-    
+
     await product.save();
-    
+
     // Get the newly added review with its _id
     const addedReview = product.reviews[product.reviews.length - 1];
-    
+
     res.status(201).json({ message: 'Review added successfully', review: addedReview });
   } catch (error) {
     console.error('Error adding review:', error);
@@ -2485,11 +2484,11 @@ app.get('/api/admin/users', authenticateToken, isAdmin, async (req, res) => {
     // Get order stats for each user
     const usersWithStats = await Promise.all(users.map(async (user) => {
       const userObj = user.toObject ? user.toObject() : user;
-      
+
       // Get order count and total spent
       let orderCount = 0;
       let totalSpent = 0;
-      
+
       try {
         if (useInMemory) {
           const userOrders = (global.__INMEM__.orders || []).filter(o => o.user?.toString() === userObj._id?.toString());
@@ -2503,7 +2502,7 @@ app.get('/api/admin/users', authenticateToken, isAdmin, async (req, res) => {
       } catch (err) {
         console.error('Error getting user orders:', err);
       }
-      
+
       return {
         ...userObj,
         orderCount,
@@ -2539,7 +2538,7 @@ app.get('/api/admin/products', authenticateToken, isAdmin, async (req, res) => {
 app.post('/api/admin/products', authenticateToken, isAdmin, async (req, res) => {
   try {
     const { name, description, category, price, originalPrice, stock, brand, warranty, featured, specifications, features, images } = req.body;
-    
+
     if (!name || !price) {
       return res.status(400).json({ success: false, message: 'Name and price are required' });
     }
@@ -2577,7 +2576,7 @@ app.put('/api/admin/products/:id', authenticateToken, isAdmin, async (req, res) 
     const updates = req.body;
 
     const product = await Product.findByIdAndUpdate(id, updates, { new: true });
-    
+
     if (!product) {
       return res.status(404).json({ success: false, message: 'Product not found' });
     }
@@ -2593,9 +2592,9 @@ app.put('/api/admin/products/:id', authenticateToken, isAdmin, async (req, res) 
 app.delete('/api/admin/products/:id', authenticateToken, isAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const product = await Product.findByIdAndDelete(id);
-    
+
     if (!product) {
       return res.status(404).json({ success: false, message: 'Product not found' });
     }
@@ -2887,7 +2886,7 @@ app.post('/api/admin/notifications/send', authenticateToken, async (req, res) =>
       return res.status(403).json({ error: 'Admin access required' });
     }
     const { subject, message, recipients } = req.body;
-    
+
     // Create notifications for each recipient
     if (recipients && recipients.length > 0) {
       const notifications = recipients.map(userId => ({
@@ -2897,13 +2896,13 @@ app.post('/api/admin/notifications/send', authenticateToken, async (req, res) =>
         message: message,
         read: false
       }));
-      
+
       await Notification.insertMany(notifications);
       console.log(`📧 Notification sent: "${subject}" to ${recipients.length} recipients`);
     }
-    
-    res.json({ 
-      success: true, 
+
+    res.json({
+      success: true,
       message: `Notification sent to ${recipients?.length || 0} users`,
       queued: recipients?.length || 0
     });
@@ -2918,7 +2917,7 @@ app.get('/api/notifications', authenticateToken, async (req, res) => {
     const notifications = await Notification.find({ user: req.user.id })
       .sort({ createdAt: -1 })
       .limit(50);
-    
+
     res.json({ success: true, notifications });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -2933,11 +2932,11 @@ app.put('/api/notifications/:id/read', authenticateToken, async (req, res) => {
       { read: true },
       { new: true }
     );
-    
+
     if (!notification) {
       return res.status(404).json({ error: 'Notification not found' });
     }
-    
+
     res.json({ success: true, notification });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -2951,7 +2950,7 @@ app.put('/api/notifications/read-all', authenticateToken, async (req, res) => {
       { user: req.user.id, read: false },
       { read: true }
     );
-    
+
     res.json({ success: true, message: 'All notifications marked as read' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -2965,11 +2964,11 @@ app.delete('/api/notifications/:id', authenticateToken, async (req, res) => {
       _id: req.params.id,
       user: req.user.id
     });
-    
+
     if (!notification) {
       return res.status(404).json({ error: 'Notification not found' });
     }
-    
+
     res.json({ success: true, message: 'Notification deleted' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -2992,15 +2991,15 @@ app.put('/api/admin/users/:id', authenticateToken, async (req, res) => {
     if (req.user.role !== 'admin') {
       return res.status(403).json({ error: 'Admin access required' });
     }
-    
+
     const { id } = req.params;
     const updates = req.body;
-    
+
     const user = await User.findByIdAndUpdate(id, updates, { new: true });
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
-    
+
     res.json({ success: true, user });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -3013,14 +3012,14 @@ app.delete('/api/admin/users/:id', authenticateToken, async (req, res) => {
     if (req.user.role !== 'admin') {
       return res.status(403).json({ error: 'Admin access required' });
     }
-    
+
     const { id } = req.params;
     const user = await User.findByIdAndDelete(id);
-    
+
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
-    
+
     res.json({ success: true, message: 'User deleted' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -3040,14 +3039,14 @@ app.get('/api/stats', async (req, res) => {
   try {
     // Get total registered users (all customers)
     const totalUsers = await User.countDocuments({ role: { $ne: 'admin' } });
-    
+
     // Get total unique customers who have placed orders
     const orders = await Order.find({});
     const uniqueOrderCustomers = new Set(orders.map(o => o.user?.toString())).size;
-    
+
     // Use the higher of registered users or ordering customers
     const totalCustomers = Math.max(totalUsers, uniqueOrderCustomers);
-    
+
     // Get total products sold (sum of all order item quantities)
     let totalProductsSold = 0;
     orders.forEach(order => {
@@ -3055,7 +3054,7 @@ app.get('/api/stats', async (req, res) => {
         totalProductsSold += (item.quantity || 1);
       });
     });
-    
+
     // Get unique cities from shipping addresses AND user addresses
     const cities = new Set();
     orders.forEach(order => {
@@ -3063,7 +3062,7 @@ app.get('/api/stats', async (req, res) => {
         cities.add(order.shippingAddress.city.toLowerCase().trim());
       }
     });
-    
+
     // Also get cities from user profiles
     const users = await User.find({ city: { $exists: true, $ne: '' } });
     users.forEach(user => {
@@ -3071,11 +3070,11 @@ app.get('/api/stats', async (req, res) => {
         cities.add(user.city.toLowerCase().trim());
       }
     });
-    
+
     // Calculate average rating from actual customer reviews only
     let totalRating = 0;
     let ratingCount = 0;
-    
+
     // Get standalone reviews (the main Review collection)
     const Review = mongoose.models.Review;
     if (Review) {
@@ -3087,7 +3086,7 @@ app.get('/api/stats', async (req, res) => {
         }
       });
     }
-    
+
     // Also check embedded reviews in products (if any)
     const products = await Product.find({});
     products.forEach(product => {
@@ -3098,7 +3097,7 @@ app.get('/api/stats', async (req, res) => {
         }
       });
     });
-    
+
     const avgRating = ratingCount > 0 ? (totalRating / ratingCount) : 0; // Show 0 if no reviews
 
     // Add base values to actual counts
@@ -3136,17 +3135,17 @@ app.get('/api/opportunities', async (req, res) => {
   try {
     // Return some sample opportunities — compatible with both DB and in-memory modes
     const opportunities = [
-      { 
-        id: 1, 
-        title: 'Become a Distributor', 
+      {
+        id: 1,
+        title: 'Become a Distributor',
         description: 'Open channels in your city and earn commissions.',
         required_skills: 'Sales & Marketing',
         location: 'Pan India',
         date_start: new Date().toISOString()
       },
-      { 
-        id: 2, 
-        title: 'Sales Partnership', 
+      {
+        id: 2,
+        title: 'Sales Partnership',
         description: 'Work with our sales team on enterprise deployments.',
         required_skills: 'Business Development',
         location: 'Mumbai, Delhi, Bangalore',
@@ -3180,14 +3179,14 @@ app.post('/api/apply', authenticateToken, async (req, res) => {
   try {
     const { opportunity_id } = req.body;
     const user = await User.findById(req.user.id);
-    
+
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
     // In a real application, you would save the application to a database
     // For now, just return a success message
-    res.json({ 
+    res.json({
       message: 'Application submitted successfully! We will contact you soon.',
       opportunity_id,
       user: {
