@@ -97,63 +97,24 @@ const sendOrderStatusEmail = async (userEmail, userName, orderId, status, orderD
   ` : '';
 
   const htmlContent = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    </head>
-    <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #F3F4F6;">
-      <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-        <!-- Header -->
-        <div style="background: linear-gradient(135deg, ${statusInfo.color} 0%, #1E40AF 100%); padding: 30px; text-align: center; border-radius: 12px 12px 0 0;">
-          <h1 style="color: white; margin: 0; font-size: 28px;">Atlas & Arrow</h1>
-          <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0;">Your Trusted Tech Partner</p>
-        </div>
-        
-        <!-- Content -->
-        <div style="background: white; padding: 30px; border-radius: 0 0 12px 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-          <h2 style="color: ${statusInfo.color}; margin: 0 0 20px 0;">${statusInfo.heading}</h2>
-          
-          <p style="color: #374151; font-size: 16px; line-height: 1.6;">
-            Hi ${userName || 'Customer'},
-          </p>
-          
-          <p style="color: #374151; font-size: 16px; line-height: 1.6;">
-            ${statusInfo.message}
-          </p>
-          
-          <div style="background: #F9FAFB; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid ${statusInfo.color};">
-            <p style="margin: 0; color: #6B7280;"><strong>Order ID:</strong> #${orderId}</p>
-            <p style="margin: 10px 0 0 0; color: #6B7280;"><strong>Status:</strong> <span style="color: ${statusInfo.color}; font-weight: bold;">${status.replace('_', ' ').toUpperCase()}</span></p>
-          </div>
-          
-          ${trackingInfo}
-          
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/orders" 
-               style="display: inline-block; background: ${statusInfo.color}; color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; font-weight: bold;">
-              Track Your Order
-            </a>
-          </div>
-          
-          <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 30px 0;">
-          
-          <p style="color: #9CA3AF; font-size: 14px; text-align: center;">
-            Thank you for shopping with Atlas & Arrow!<br>
-            If you have any questions, please contact our support team.
-          </p>
-        </div>
-        
-        <!-- Footer -->
-        <div style="text-align: center; padding: 20px; color: #9CA3AF; font-size: 12px;">
-          <p>© 2024 Atlas & Arrow. All rights reserved.</p>
-          <p>This email was sent regarding your order update.</p>
-        </div>
-      </div>
-    </body>
-    </html>
-  `;
+    Hi ${userName || 'Customer'},
+
+    ${statusInfo.heading}
+
+    ${statusInfo.message}
+
+    Order ID: #${orderId}
+    Status: ${status.replace('_', ' ').toUpperCase()}
+
+    ${orderDetails.tracking && orderDetails.tracking.carrier ? `Carrier: ${orderDetails.tracking.carrier}` : ''}
+    ${orderDetails.tracking && orderDetails.tracking.trackingNumber ? `Tracking Number: ${orderDetails.tracking.trackingNumber}` : ''}
+    ${orderDetails.tracking && orderDetails.tracking.estimatedDelivery ? `Estimated Delivery: ${new Date(orderDetails.tracking.estimatedDelivery).toLocaleDateString()}` : ''}
+
+    Track your order: ${process.env.FRONTEND_URL || 'http://localhost:3000'}/orders
+
+    Thank you for shopping with Atlas & Arrow!
+    If you have any questions, please contact our support team.
+    `;
 
   try {
     const { data, error } = await resend.emails.send({
@@ -184,67 +145,20 @@ const sendWelcomeEmail = async (userEmail, userName) => {
   }
 
   const htmlContent = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    </head>
-    <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #F3F4F6;">
-      <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-        <!-- Header -->
-        <div style="background: linear-gradient(135deg, #3B82F6 0%, #1E40AF 100%); padding: 40px; text-align: center; border-radius: 12px 12px 0 0;">
-          <h1 style="color: white; margin: 0; font-size: 32px;">🎉 Welcome to Atlas & Arrow!</h1>
-        </div>
-        
-        <!-- Content -->
-        <div style="background: white; padding: 40px; border-radius: 0 0 12px 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-          <h2 style="color: #1E40AF; margin: 0 0 20px 0;">Hello ${userName}!</h2>
-          
-          <p style="color: #374151; font-size: 16px; line-height: 1.8;">
-            Thank you for creating an account with <strong>Atlas & Arrow</strong>! We're thrilled to have you as part of our community.
-          </p>
-          
-          <p style="color: #374151; font-size: 16px; line-height: 1.8;">
-            As your trusted tech partner, we offer the best selection of:
-          </p>
-          
-          <ul style="color: #374151; font-size: 16px; line-height: 2;">
-            <li>🔐 Biometric Devices</li>
-            <li>📍 GPS Trackers</li>
-            <li>🖨️ Thermal Printers</li>
-            <li>📋 Aadhaar Enrollment Kits</li>
-            <li>💼 Business Equipment</li>
-          </ul>
-          
-          <div style="background: linear-gradient(135deg, #10B981 0%, #059669 100%); padding: 20px; border-radius: 8px; margin: 30px 0; text-align: center;">
-            <p style="color: white; margin: 0; font-size: 18px; font-weight: bold;">🎁 Welcome Offer!</p>
-            <p style="color: white; margin: 10px 0 0 0; font-size: 24px;">Use code <strong>WELCOME10</strong> for 10% off your first order!</p>
-          </div>
-          
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/products" 
-               style="display: inline-block; background: linear-gradient(135deg, #3B82F6 0%, #1E40AF 100%); color: white; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
-              Start Shopping →
-            </a>
-          </div>
-          
-          <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 30px 0;">
-          
-          <p style="color: #9CA3AF; font-size: 14px; text-align: center;">
-            If you have any questions, feel free to reply to this email or contact our support team.
-          </p>
-        </div>
-        
-        <!-- Footer -->
-        <div style="text-align: center; padding: 20px; color: #9CA3AF; font-size: 12px;">
-          <p>© 2024 Atlas & Arrow. All rights reserved.</p>
-          <p>Your Trusted Tech Partner</p>
-        </div>
-      </div>
-    </body>
-    </html>
-  `;
+    Hello ${userName},
+
+    Thank you for creating an account with Atlas & Arrow! We're thrilled to have you as part of our community.
+
+    As your trusted tech partner, we offer the best selection of biometric devices, GPS trackers, thermal printers, Aadhaar kits, and business equipment.
+
+    Use code WELCOME10 for 10% off your first order!
+
+    Start shopping: ${process.env.FRONTEND_URL || 'http://localhost:3000'}/products
+
+    If you have any questions, feel free to reply to this email or contact our support team.
+
+    Atlas & Arrow
+    `;
 
   try {
     const { data, error } = await resend.emails.send({
@@ -287,94 +201,28 @@ const sendOrderConfirmationEmail = async (userEmail, userName, orderId, orderDet
   `).join('');
 
   const htmlContent = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    </head>
-    <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #F3F4F6;">
-      <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-        <!-- Header -->
-        <div style="background: linear-gradient(135deg, #10B981 0%, #059669 100%); padding: 40px; text-align: center; border-radius: 12px 12px 0 0;">
-          <h1 style="color: white; margin: 0; font-size: 28px;">✅ Order Confirmed!</h1>
-          <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 16px;">Thank you for your purchase</p>
-        </div>
-        
-        <!-- Content -->
-        <div style="background: white; padding: 30px; border-radius: 0 0 12px 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-          <p style="color: #374151; font-size: 16px; line-height: 1.6;">
-            Hi <strong>${userName}</strong>,
-          </p>
-          
-          <p style="color: #374151; font-size: 16px; line-height: 1.6;">
-            Great news! Your order has been confirmed and is being prepared for shipment.
-          </p>
-          
-          <div style="background: #F9FAFB; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #10B981;">
-            <p style="margin: 0; color: #374151; font-size: 18px;"><strong>Order ID:</strong> #${orderId}</p>
-            <p style="margin: 10px 0 0 0; color: #6B7280;">Placed on ${new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-          </div>
-          
-          <!-- Order Items -->
-          <h3 style="color: #374151; margin: 30px 0 15px 0;">Order Summary</h3>
-          <table style="width: 100%; border-collapse: collapse;">
-            ${itemsHtml}
-            <tr>
-              <td style="padding: 12px; font-weight: bold;">Subtotal</td>
-              <td style="padding: 12px; text-align: right;">₹${orderDetails.subtotal?.toLocaleString() || '0'}</td>
-            </tr>
-            <tr>
-              <td style="padding: 12px;">Shipping</td>
-              <td style="padding: 12px; text-align: right;">${orderDetails.shipping === 0 ? 'FREE' : '₹' + orderDetails.shipping?.toLocaleString()}</td>
-            </tr>
-            <tr>
-              <td style="padding: 12px;">Tax</td>
-              <td style="padding: 12px; text-align: right;">₹${orderDetails.tax?.toLocaleString() || '0'}</td>
-            </tr>
-            <tr style="background: #F3F4F6;">
-              <td style="padding: 15px; font-size: 18px; font-weight: bold;">Total</td>
-              <td style="padding: 15px; text-align: right; font-size: 18px; font-weight: bold; color: #10B981;">₹${orderDetails.total?.toLocaleString() || '0'}</td>
-            </tr>
-          </table>
-          
-          <!-- Shipping Address -->
-          ${orderDetails.shippingAddress ? `
-          <h3 style="color: #374151; margin: 30px 0 15px 0;">Shipping Address</h3>
-          <div style="background: #F9FAFB; padding: 15px; border-radius: 8px;">
-            <p style="margin: 0; color: #374151;">
-              ${orderDetails.shippingAddress.fullName || userName}<br>
-              ${orderDetails.shippingAddress.address || ''}<br>
-              ${orderDetails.shippingAddress.city || ''}, ${orderDetails.shippingAddress.state || ''} ${orderDetails.shippingAddress.pincode || ''}<br>
-              Phone: ${orderDetails.shippingAddress.phone || ''}
-            </p>
-          </div>
-          ` : ''}
-          
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/orders" 
-               style="display: inline-block; background: linear-gradient(135deg, #3B82F6 0%, #1E40AF 100%); color: white; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-weight: bold;">
-              Track Your Order
-            </a>
-          </div>
-          
-          <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 30px 0;">
-          
-          <p style="color: #9CA3AF; font-size: 14px; text-align: center;">
-            We'll send you another email when your order ships.<br>
-            Thank you for shopping with Atlas & Arrow!
-          </p>
-        </div>
-        
-        <!-- Footer -->
-        <div style="text-align: center; padding: 20px; color: #9CA3AF; font-size: 12px;">
-          <p>© 2024 Atlas & Arrow. All rights reserved.</p>
-        </div>
-      </div>
-    </body>
-    </html>
-  `;
+    const htmlContent = `
+      Hi ${userName},
 
+      Your order has been confirmed and is being prepared for shipment.
+
+      Order ID: #${orderId}
+      Placed on: ${new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+
+      Order Summary:
+      ${orderDetails.items.map(item => `${item.name} (Qty: ${item.quantity}) - ₹${(item.price * item.quantity).toLocaleString()}`).join('\n')}
+      Subtotal: ₹${orderDetails.subtotal?.toLocaleString() || '0'}
+      Shipping: ${orderDetails.shipping === 0 ? 'FREE' : '₹' + orderDetails.shipping?.toLocaleString()}
+      Tax: ₹${orderDetails.tax?.toLocaleString() || '0'}
+      Total: ₹${orderDetails.total?.toLocaleString() || '0'}
+
+      ${orderDetails.shippingAddress ? `Shipping Address:\n${orderDetails.shippingAddress.fullName || userName}\n${orderDetails.shippingAddress.address || ''}\n${orderDetails.shippingAddress.city || ''}, ${orderDetails.shippingAddress.state || ''} ${orderDetails.shippingAddress.pincode || ''}\nPhone: ${orderDetails.shippingAddress.phone || ''}` : ''}
+
+      Track your order: ${process.env.FRONTEND_URL || 'http://localhost:3000'}/orders
+
+      If you have any questions, please contact our support team.
+      Atlas & Arrow
+      `;
   try {
     const { data, error } = await resend.emails.send({
       from: 'Atlas & Arrow <noreply@atlasarrow.me>',
