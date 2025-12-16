@@ -948,23 +948,25 @@ app.post('/api/auth/forgot-password', [
               <meta charset="utf-8">
               <meta name="viewport" content="width=device-width, initial-scale=1.0">
             </head>
-            <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4;">
-              <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
-                <div style="background: linear-gradient(135deg, #2563eb 0%, #0ea5e9 100%); padding: 30px; text-align: center;">
-                  <h1 style="color: #ffffff; margin: 0; font-size: 28px;">🔐 Password Reset</h1>
+            <body style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; margin: 0; padding: 0; background-color: #f9f9f9; color: #333333;">
+              <div style="max-width: 600px; margin: 40px auto; background-color: #ffffff; border: 1px solid #e0e0e0; border-radius: 4px;">
+                <div style="padding: 30px; text-align: center; border-bottom: 1px solid #eeeeee;">
+                  <h1 style="color: #333333; margin: 0; font-size: 24px; font-weight: 600;">Password Reset</h1>
                 </div>
                 <div style="padding: 40px 30px;">
-                  <p style="font-size: 16px; color: #333;">Hello <strong>${user.fullname}</strong>,</p>
-                  <p style="font-size: 16px; color: #666;">You requested to reset your password. Use the OTP below to proceed:</p>
-                  <div style="background: linear-gradient(135deg, #2563eb 0%, #0ea5e9 100%); padding: 25px; border-radius: 12px; text-align: center; margin: 30px 0;">
-                    <p style="color: #ffffff; font-size: 14px; margin: 0 0 10px 0;">Your OTP Code</p>
-                    <p style="color: #ffffff; font-size: 36px; font-weight: bold; letter-spacing: 8px; margin: 0;">${otp}</p>
+                  <p style="font-size: 16px; line-height: 1.5; color: #555555; margin-bottom: 20px;">Hello <strong>${user.fullname}</strong>,</p>
+                  <p style="font-size: 16px; line-height: 1.5; color: #555555; margin-bottom: 30px;">We received a request to reset your password. Please use the following One-Time Password (OTP) to complete the process:</p>
+                  
+                  <div style="background-color: #f5f5f5; border: 1px solid #e0e0e0; border-radius: 6px; padding: 20px; text-align: center; margin: 30px 0;">
+                    <p style="color: #777777; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 10px 0;">Verification Code</p>
+                    <p style="color: #333333; font-size: 32px; font-weight: 700; letter-spacing: 4px; margin: 0; font-family: monospace;">${otp}</p>
                   </div>
-                  <p style="font-size: 14px; color: #666; text-align: center;">⏰ This OTP is valid for <strong>10 minutes</strong></p>
-                  <p style="font-size: 14px; color: #999; margin-top: 30px;">If you didn't request this, please ignore this email or contact support if you have concerns.</p>
+                  
+                  <p style="font-size: 14px; color: #777777; text-align: center; margin-bottom: 0;">This code will expire in 10 minutes.</p>
                 </div>
-                <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #eee;">
-                  <p style="color: #666; font-size: 12px; margin: 0;">© 2024 Atlas & Arrow. All rights reserved.</p>
+                <div style="background-color: #f9f9f9; padding: 20px; text-align: center; border-top: 1px solid #eeeeee; font-size: 12px; color: #999999;">
+                  <p style="margin: 0;">If you did not request a password reset, please ignore this email.</p>
+                  <p style="margin: 10px 0 0 0;">&copy; ${new Date().getFullYear()} Atlas & Arrow.</p>
                 </div>
               </div>
             </body>
