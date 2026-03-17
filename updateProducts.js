@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Connect to MongoDB
-mongoose.connect('mongodb+srv://ayushpandey23_db_user:ayush123@cluster0.kanyaon.mongodb.net/atlas_arrow?retryWrites=true&w=majority');
+mongoose.connect(process.env.MONGODB_URI);
 
 // Product Schema (matching server)
 const productSchema = new mongoose.Schema({

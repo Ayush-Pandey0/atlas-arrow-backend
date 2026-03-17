@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 // MongoDB connection
-const MONGODB_URI = 'mongodb+srv://ayushpandey23_db_user:ayush123@cluster0.kanyaon.mongodb.net/atlasarrow?appName=Cluster0';
+const MONGODB_URI = process.env.MONGODB_URI;
 
 // Product Schema
 const productSchema = new mongoose.Schema({

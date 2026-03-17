@@ -1,7 +1,7 @@
 ﻿const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
-const MONGODB_URI = 'mongodb+srv://ayushpandey23_db_user:ayush123@cluster0.kanyaon.mongodb.net/atlasarrow?retryWrites=true&w=majority';
+const MONGODB_URI = process.env.MONGODB_URI;
 
 const userSchema = new mongoose.Schema({
   fullname: String,

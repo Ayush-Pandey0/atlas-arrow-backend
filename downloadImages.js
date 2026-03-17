@@ -3,7 +3,7 @@ const http = require('http');
 const mongoose = require('mongoose');
 require('dotenv').config();
 
-const MONGODB_URI = 'mongodb+srv://ayushpandey23_db_user:ayush123@cluster0.kanyaon.mongodb.net/atlasarrow?retryWrites=true&w=majority&appName=Cluster0';
+const MONGODB_URI = process.env.MONGODB_URI;
 
 // Product images from atlasandarrow.in
 const productImages = {
