@@ -543,8 +543,11 @@ const productSchema = new mongoose.Schema({
   description: { type: String, required: true },
   category: {
     type: String,
-    required: true,
-    enum: ['Biometric Devices', 'GPS Trackers', 'Printers', 'Aadhaar Kits', 'Business Equipment', 'Accessories']
+    required: true
+  },
+  numReviews: {
+    type: Number,
+    default: 0
   },
   price: { type: Number, required: true },
   originalPrice: { type: Number },
@@ -911,29 +914,41 @@ const isAdmin = (req, res, next) => {
 
 async function initializeDatabase() {
   try {
-    // Remove old admin if exists
-    await User.deleteOne({ email: 'admin@atlasarrow.com' });
+    const adminEmail = process.env.ADMIN_EMAIL || 'admin@atlas.com';
+    const adminPassword = process.env.ADMIN_PASSWORD || 'arrow123';
 
-    // Create or update admin user with new credentials
-    const adminExists = await User.findOne({ email: process.env.ADMIN_EMAIL });
+    // Ensure primary admin exists
+    const hashedPassword = await bcrypt.hash(adminPassword, 10);
+    const adminExists = await User.findOne({ email: adminEmail });
     if (!adminExists) {
-      const hashedPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD, 10);
       await User.create({
         fullname: 'Admin User',
-        email: process.env.ADMIN_EMAIL,
+        email: adminEmail,
         phone: '9999999999',
         password: hashedPassword,
         role: 'admin'
       });
-      console.log(' Admin user created:', process.env.ADMIN_EMAIL);
+      console.log('✅ Admin user created:', adminEmail);
     } else {
-      // Update admin password to ensure it matches env variable
-      const hashedPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD, 10);
       await User.updateOne(
-        { email: process.env.ADMIN_EMAIL },
+        { email: adminEmail },
         { $set: { password: hashedPassword, role: 'admin' } }
       );
-      console.log(' Admin user password reset:', process.env.ADMIN_EMAIL);
+      console.log('✅ Admin user verified/updated:', adminEmail);
+    }
+
+    // Also ensure admin@atlas.com exists as fallback admin if ADMIN_EMAIL is set to something else
+    if (adminEmail !== 'admin@atlas.com') {
+      const fallbackHashed = await bcrypt.hash('arrow123', 10);
+      await User.updateOne(
+        { email: 'admin@atlas.com' },
+        { 
+          $setOnInsert: { fullname: 'Admin User', phone: '9999999999' },
+          $set: { password: fallbackHashed, role: 'admin' }
+        },
+        { upsert: true }
+      );
+      console.log('✅ Fallback admin (admin@atlas.com) ready');
     }
 
     // Log product count - DO NOT auto-generate products
@@ -2597,27 +2612,35 @@ app.post('/api/products/:id/reviews', authenticateToken, async (req, res) => {
     console.log('Review data:', { rating, title, comment: comment?.substring(0, 50) });
 
     // Validate ObjectId format
-    if (!productId || productId.length !== 24) {
+    if (!productId || !mongoose.Types.ObjectId.isValid(productId)) {
       return res.status(400).json({ message: 'Invalid product ID format' });
     }
 
     const product = await Product.findById(productId);
-
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
     }
 
     // Get user details for the review
-    const user = await User.findById(req.user.id);
-    const userName = user?.fullname || 'Customer';
-    const userEmail = user?.email || req.user.email;
+    let userName = 'Customer';
+    let userEmail = req.user.email || '';
+    if (req.user.id && mongoose.Types.ObjectId.isValid(req.user.id)) {
+      const user = await User.findById(req.user.id);
+      if (user) {
+        userName = user.fullname || userName;
+        userEmail = user.email || userEmail;
+      }
+    }
 
+    const reviewId = new mongoose.Types.ObjectId();
+    const reviewRating = Math.max(1, Math.min(5, parseInt(rating, 10) || 5));
     const review = {
-      user: req.user.id,
-      userId: req.user.id,
+      _id: reviewId,
+      user: mongoose.Types.ObjectId.isValid(req.user.id) ? new mongoose.Types.ObjectId(req.user.id) : undefined,
+      userId: mongoose.Types.ObjectId.isValid(req.user.id) ? new mongoose.Types.ObjectId(req.user.id) : undefined,
       userName: userName,
       userEmail: userEmail,
-      rating: parseInt(rating) || 5,
+      rating: reviewRating,
       title: title || '',
       comment: comment || text || '',
       text: comment || text || '',
@@ -2626,24 +2649,28 @@ app.post('/api/products/:id/reviews', authenticateToken, async (req, res) => {
       helpful: 0
     };
 
-    // Ensure reviews is an array (fix for legacy data where it might be an object)
-    if (!product.reviews || !Array.isArray(product.reviews)) {
-      product.reviews = [];
-    }
+    // Ensure reviews is an array
+    const existingReviews = Array.isArray(product.reviews) ? product.reviews : [];
+    const updatedReviews = [...existingReviews, review];
 
-    product.reviews.push(review);
+    // Calculate new product rating as a number between 0 and 5
+    const totalRating = updatedReviews.reduce((sum, r) => sum + (Number(r.rating) || 0), 0);
+    const newRating = updatedReviews.length > 0 ? parseFloat((totalRating / updatedReviews.length).toFixed(1)) : 0;
+    const newNumReviews = updatedReviews.length;
 
-    // Update product rating
-    const totalRating = product.reviews.reduce((sum, r) => sum + (r.rating || 0), 0);
-    product.rating = product.reviews.length > 0 ? (totalRating / product.reviews.length).toFixed(1) : 0;
-    product.numReviews = product.reviews.length;
+    // Atomically update product reviews, rating, and numReviews
+    await Product.updateOne(
+      { _id: productId },
+      {
+        $push: { reviews: review },
+        $set: {
+          rating: newRating,
+          numReviews: newNumReviews
+        }
+      }
+    );
 
-    await product.save();
-
-    // Get the newly added review with its _id
-    const addedReview = product.reviews[product.reviews.length - 1];
-
-    res.status(201).json({ message: 'Review added successfully', review: addedReview });
+    res.status(201).json({ message: 'Review added successfully', review });
   } catch (error) {
     console.error('Error adding review:', error);
     res.status(500).json({ message: 'Failed to add review', error: error.message });
