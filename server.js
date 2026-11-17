@@ -33,6 +33,66 @@ const resend = new Resend(process.env.RESEND_API_KEY || '');
 // Log email configuration status on startup
 console.log('📧 Email Config:', process.env.RESEND_API_KEY ? 'Resend API Configured ✓' : 'NOT CONFIGURED (set RESEND_API_KEY)');
 
+const FRONTEND_BASE_URL = process.env.FRONTEND_URL || 'https://atlasarrow.me';
+
+// Base HTML wrapper for emails
+const getEmailWrapper = (title, contentHtml) => `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${title}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #F8FAFC; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; color: #0F172A;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #F8FAFC; width: 100%; padding: 32px 12px;">
+    <tr>
+      <td align="center">
+        <!-- Main Card -->
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width: 580px; background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);">
+          
+          <!-- Brand Header -->
+          <tr>
+            <td style="padding: 26px 32px 20px; border-bottom: 1px solid #F1F5F9;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td>
+                    <span style="font-size: 16px; font-weight: 800; letter-spacing: 2px; color: #0F172A; text-transform: uppercase;">ATLAS &amp; ARROW</span>
+                  </td>
+                  <td align="right">
+                    <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #64748B; font-weight: 600;">Tech Partner</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Main Body -->
+          <tr>
+            <td style="padding: 32px 32px 24px;">
+              ${contentHtml}
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 24px 32px; background-color: #F8FAFC; border-top: 1px solid #F1F5F9; text-align: center;">
+              <p style="margin: 0 0 6px; font-size: 12px; color: #64748B; line-height: 1.5;">
+                Need help with your order? Reach out to <a href="mailto:atlasarrow75@gmail.com" style="color: #2563EB; text-decoration: none; font-weight: 600;">atlasarrow75@gmail.com</a>
+              </p>
+              <p style="margin: 0; font-size: 11px; color: #94A3B8;">
+                © ${new Date().getFullYear()} Atlas &amp; Arrow • Indira Nagar, Lucknow, UP, India
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+`;
+
 // Email sending function
 const sendOrderStatusEmail = async (userEmail, userName, orderId, status, orderDetails = {}) => {
   // Skip if Resend API key not configured
@@ -43,78 +103,114 @@ const sendOrderStatusEmail = async (userEmail, userName, orderId, status, orderD
 
   const statusMessages = {
     'processing': {
-      subject: '📦 Order Confirmed - Atlas & Arrow',
-      heading: 'Your Order is Being Processed!',
-      message: 'We\'ve received your order and it\'s now being prepared for shipment.',
-      color: '#3B82F6'
+      subject: `📦 Order Processing - #${orderId} | Atlas & Arrow`,
+      badge: 'Order Processing',
+      badgeBg: '#EFF6FF',
+      badgeColor: '#2563EB',
+      heading: 'Your Order is Being Processed',
+      message: 'We have received your order and our team is currently preparing it for dispatch.'
     },
     'confirmed': {
-      subject: '✅ Order Confirmed - Atlas & Arrow',
-      heading: 'Your Order is Confirmed!',
-      message: 'Your order has been confirmed and will be shipped soon.',
-      color: '#10B981'
+      subject: `✅ Order Confirmed - #${orderId} | Atlas & Arrow`,
+      badge: 'Order Confirmed',
+      badgeBg: '#ECFDF5',
+      badgeColor: '#059669',
+      heading: 'Your Order is Confirmed',
+      message: 'Your order has been verified and confirmed. It will be dispatched shortly.'
     },
     'shipped': {
-      subject: '🚚 Order Shipped - Atlas & Arrow',
+      subject: `🚚 Order Shipped - #${orderId} | Atlas & Arrow`,
+      badge: 'Order Shipped',
+      badgeBg: '#F3E8FF',
+      badgeColor: '#7C3AED',
       heading: 'Your Order is On Its Way!',
-      message: 'Great news! Your order has been shipped and is on its way to you.',
-      color: '#8B5CF6'
+      message: 'Great news! Your package has been dispatched and is on its journey to you.'
     },
     'out_for_delivery': {
-      subject: '🏃 Out for Delivery - Atlas & Arrow',
-      heading: 'Your Order is Out for Delivery!',
-      message: 'Exciting! Your order is out for delivery and will arrive today.',
-      color: '#F59E0B'
+      subject: `🏃 Out for Delivery - #${orderId} | Atlas & Arrow`,
+      badge: 'Out for Delivery',
+      badgeBg: '#FEF3C7',
+      badgeColor: '#D97706',
+      heading: 'Out for Delivery Today!',
+      message: 'Your order is out with the delivery agent and is scheduled to reach you today.'
     },
     'delivered': {
-      subject: '🎉 Order Delivered - Atlas & Arrow',
-      heading: 'Your Order Has Been Delivered!',
-      message: 'Your order has been successfully delivered. We hope you enjoy your purchase!',
-      color: '#10B981'
+      subject: `🎉 Order Delivered - #${orderId} | Atlas & Arrow`,
+      badge: 'Delivered',
+      badgeBg: '#ECFDF5',
+      badgeColor: '#059669',
+      heading: 'Order Successfully Delivered',
+      message: 'Your order has been delivered. We hope you love your purchase! Thank you for choosing Atlas & Arrow.'
     },
     'cancelled': {
-      subject: '❌ Order Cancelled - Atlas & Arrow',
-      heading: 'Your Order Has Been Cancelled',
-      message: 'Your order has been cancelled. If you have any questions, please contact our support.',
-      color: '#EF4444'
+      subject: `❌ Order Cancelled - #${orderId} | Atlas & Arrow`,
+      badge: 'Order Cancelled',
+      badgeBg: '#FEE2E2',
+      badgeColor: '#DC2626',
+      heading: 'Order Has Been Cancelled',
+      message: 'Your order has been cancelled. If payment was deducted, a refund will be processed back to your original payment method.'
     }
   };
 
   const statusInfo = statusMessages[status] || {
-    subject: '📦 Order Update - Atlas & Arrow',
+    subject: `📦 Order Update - #${orderId} | Atlas & Arrow`,
+    badge: status.replace('_', ' ').toUpperCase(),
+    badgeBg: '#F1F5F9',
+    badgeColor: '#475569',
     heading: 'Order Status Update',
-    message: `Your order status has been updated to: ${status}`,
-    color: '#6B7280'
+    message: `Your order status has been updated to: ${status.replace('_', ' ')}.`
   };
 
-  const trackingInfo = orderDetails.tracking ? `
-    <div style="background: #F3F4F6; padding: 15px; border-radius: 8px; margin: 20px 0;">
-      <h3 style="margin: 0 0 10px 0; color: #374151;">Tracking Information</h3>
-      ${orderDetails.tracking.carrier ? `<p style="margin: 5px 0;"><strong>Carrier:</strong> ${orderDetails.tracking.carrier}</p>` : ''}
-      ${orderDetails.tracking.trackingNumber ? `<p style="margin: 5px 0;"><strong>Tracking Number:</strong> ${orderDetails.tracking.trackingNumber}</p>` : ''}
-      ${orderDetails.tracking.estimatedDelivery ? `<p style="margin: 5px 0;"><strong>Estimated Delivery:</strong> ${new Date(orderDetails.tracking.estimatedDelivery).toLocaleDateString()}</p>` : ''}
-    </div>
+  const trackingBox = (orderDetails.tracking && (orderDetails.tracking.carrier || orderDetails.tracking.trackingNumber)) ? `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; margin: 20px 0 24px;">
+      <tr>
+        <td style="padding: 16px 20px;">
+          <p style="margin: 0 0 8px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #64748B;">Tracking Details</p>
+          ${orderDetails.tracking.carrier ? `<p style="margin: 0 0 4px; font-size: 13px; color: #334155;"><strong>Courier:</strong> ${orderDetails.tracking.carrier}</p>` : ''}
+          ${orderDetails.tracking.trackingNumber ? `<p style="margin: 0 0 4px; font-size: 13px; color: #334155;"><strong>Tracking Number:</strong> <span style="font-family: monospace; font-weight: 700; color: #0F172A;">${orderDetails.tracking.trackingNumber}</span></p>` : ''}
+          ${orderDetails.tracking.estimatedDelivery ? `<p style="margin: 0; font-size: 13px; color: #334155;"><strong>Estimated Delivery:</strong> ${new Date(orderDetails.tracking.estimatedDelivery).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>` : ''}
+        </td>
+      </tr>
+    </table>
   ` : '';
 
-  const htmlContent = `
-    Hi ${userName || 'Customer'},
+  const bodyHtml = `
+    <!-- Status Pill -->
+    <div style="margin-bottom: 14px;">
+      <span style="display: inline-block; background-color: ${statusInfo.badgeBg}; color: ${statusInfo.badgeColor}; font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.5px;">${statusInfo.badge}</span>
+    </div>
 
-    ${statusInfo.heading}
+    <!-- Title & Greeting -->
+    <h1 style="margin: 0 0 8px; font-size: 22px; font-weight: 700; color: #0F172A; line-height: 1.3;">${statusInfo.heading}</h1>
+    <p style="margin: 0 0 20px; font-size: 14px; color: #64748B; line-height: 1.5;">Hi ${userName || 'Customer'}, ${statusInfo.message}</p>
 
-    ${statusInfo.message}
+    <!-- Order Meta Box -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; margin-bottom: 20px;">
+      <tr>
+        <td style="padding: 14px 18px;">
+          <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748B; font-weight: 600; display: block; margin-bottom: 2px;">Order ID</span>
+          <span style="font-size: 15px; font-weight: 700; color: #0F172A; font-family: monospace;">#${orderId}</span>
+        </td>
+        <td align="right" style="padding: 14px 18px;">
+          <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748B; font-weight: 600; display: block; margin-bottom: 2px;">Updated Status</span>
+          <span style="font-size: 13px; font-weight: 700; color: ${statusInfo.badgeColor}; text-transform: uppercase;">${status.replace('_', ' ')}</span>
+        </td>
+      </tr>
+    </table>
 
-    Order ID: #${orderId}
-    Status: ${status.replace('_', ' ').toUpperCase()}
+    ${trackingBox}
 
-    ${orderDetails.tracking && orderDetails.tracking.carrier ? `Carrier: ${orderDetails.tracking.carrier}` : ''}
-    ${orderDetails.tracking && orderDetails.tracking.trackingNumber ? `Tracking Number: ${orderDetails.tracking.trackingNumber}` : ''}
-    ${orderDetails.tracking && orderDetails.tracking.estimatedDelivery ? `Estimated Delivery: ${new Date(orderDetails.tracking.estimatedDelivery).toLocaleDateString()}` : ''}
+    <!-- Call to action button -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top: 16px;">
+      <tr>
+        <td align="center">
+          <a href="${FRONTEND_BASE_URL}/orders" style="display: inline-block; background-color: #0F172A; color: #FFFFFF; font-size: 14px; font-weight: 600; text-decoration: none; padding: 13px 32px; border-radius: 6px; letter-spacing: 0.3px;">Track Order Live →</a>
+        </td>
+      </tr>
+    </table>
+  `;
 
-    Track your order: ${process.env.FRONTEND_URL || 'http://localhost:3000'}/orders
-
-    Thank you for shopping with Atlas & Arrow!
-    If you have any questions, please contact our support team.
-    `;
+  const htmlContent = getEmailWrapper(statusInfo.subject, bodyHtml);
 
   try {
     const { data, error } = await resend.emails.send({
@@ -144,21 +240,38 @@ const sendWelcomeEmail = async (userEmail, userName) => {
     return false;
   }
 
-  const htmlContent = `
-    Hello ${userName},
+  const bodyHtml = `
+    <!-- Status Pill -->
+    <div style="margin-bottom: 14px;">
+      <span style="display: inline-block; background-color: #EFF6FF; color: #2563EB; font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.5px;">Welcome</span>
+    </div>
 
-    Thank you for creating an account with Atlas & Arrow! We're thrilled to have you as part of our community.
+    <!-- Title & Greeting -->
+    <h1 style="margin: 0 0 8px; font-size: 22px; font-weight: 700; color: #0F172A; line-height: 1.3;">Welcome to Atlas &amp; Arrow, ${userName}!</h1>
+    <p style="margin: 0 0 20px; font-size: 14px; color: #64748B; line-height: 1.5;">We're thrilled to have you as part of our community. As your trusted tech partner, we offer certified biometric devices, GPS receivers, thermal printers, and enterprise equipment.</p>
 
-    As your trusted tech partner, we offer the best selection of biometric devices, GPS trackers, thermal printers, Aadhaar kits, and business equipment.
+    <!-- Coupon Box -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #F8FAFC; border: 2px dashed #CBD5E1; border-radius: 8px; margin-bottom: 24px; text-align: center;">
+      <tr>
+        <td style="padding: 20px;">
+          <p style="margin: 0 0 6px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #64748B;">Special Welcome Offer</p>
+          <p style="margin: 0 0 8px; font-size: 24px; font-weight: 800; color: #2563EB; font-family: monospace; letter-spacing: 2px;">WELCOME10</p>
+          <p style="margin: 0; font-size: 13px; color: #475569;">Use this coupon code at checkout to get <strong>10% off</strong> your first order!</p>
+        </td>
+      </tr>
+    </table>
 
-    Use code WELCOME10 for 10% off your first order!
+    <!-- Call to action button -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top: 10px;">
+      <tr>
+        <td align="center">
+          <a href="${FRONTEND_BASE_URL}/products" style="display: inline-block; background-color: #0F172A; color: #FFFFFF; font-size: 14px; font-weight: 600; text-decoration: none; padding: 13px 32px; border-radius: 6px; letter-spacing: 0.3px;">Start Exploring Products →</a>
+        </td>
+      </tr>
+    </table>
+  `;
 
-    Start shopping: ${process.env.FRONTEND_URL || 'http://localhost:3000'}/products
-
-    If you have any questions, feel free to reply to this email or contact our support team.
-
-    Atlas & Arrow
-    `;
+  const htmlContent = getEmailWrapper('Welcome to Atlas & Arrow!', bodyHtml);
 
   try {
     const { data, error } = await resend.emails.send({
@@ -188,40 +301,107 @@ const sendOrderConfirmationEmail = async (userEmail, userName, orderId, orderDet
     return false;
   }
 
-  const itemsHtml = orderDetails.items.map(item => `
-    <tr>
-      <td style="padding: 12px; border-bottom: 1px solid #E5E7EB;">
-        <strong>${item.name}</strong><br>
-        <span style="color: #6B7280; font-size: 14px;">Qty: ${item.quantity}</span>
+  const items = orderDetails.items || [];
+  const itemsRows = items.map(item => `
+    <tr style="border-bottom: 1px solid #F1F5F9;">
+      <td style="padding: 14px 0; vertical-align: top;">
+        <span style="font-size: 14px; font-weight: 600; color: #0F172A; line-height: 1.4; display: block;">${item.name}</span>
+        <span style="font-size: 12px; color: #64748B;">Quantity: ${item.quantity}</span>
       </td>
-      <td style="padding: 12px; border-bottom: 1px solid #E5E7EB; text-align: right;">
-        ₹${(item.price * item.quantity).toLocaleString()}
+      <td align="right" style="padding: 14px 0; vertical-align: top; font-size: 14px; font-weight: 600; color: #0F172A; white-space: nowrap;">
+        ₹${((item.price || 0) * (item.quantity || 1)).toLocaleString('en-IN')}
       </td>
     </tr>
   `).join('');
 
-  const htmlContent = `
-      Hi ${userName},
+  const shippingInfo = orderDetails.shippingAddress ? `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; margin: 24px 0 28px;">
+      <tr>
+        <td style="padding: 16px 20px;">
+          <p style="margin: 0 0 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #64748B;">Shipping Address</p>
+          <p style="margin: 0 0 4px; font-size: 14px; font-weight: 600; color: #0F172A;">${orderDetails.shippingAddress.fullName || userName}</p>
+          <p style="margin: 0; font-size: 13px; color: #475569; line-height: 1.5;">
+            ${orderDetails.shippingAddress.address || ''}<br>
+            ${[orderDetails.shippingAddress.city, orderDetails.shippingAddress.state, orderDetails.shippingAddress.pincode].filter(Boolean).join(', ')}
+            ${orderDetails.shippingAddress.phone ? `<br><span style="color: #64748B;">Phone: ${orderDetails.shippingAddress.phone}</span>` : ''}
+          </p>
+        </td>
+      </tr>
+    </table>
+  ` : '';
 
-      Your order has been confirmed and is being prepared for shipment.
+  const bodyHtml = `
+    <!-- Status Pill -->
+    <div style="margin-bottom: 14px;">
+      <span style="display: inline-block; background-color: #ECFDF5; color: #059669; font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.5px;">✓ Order Confirmed</span>
+    </div>
 
-      Order ID: #${orderId}
-      Placed on: ${new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+    <!-- Title & Greeting -->
+    <h1 style="margin: 0 0 8px; font-size: 22px; font-weight: 700; color: #0F172A; line-height: 1.3;">Thank you for your order, ${userName || 'Customer'}!</h1>
+    <p style="margin: 0 0 24px; font-size: 14px; color: #64748B; line-height: 1.5;">Your order has been placed successfully and is being prepared. We'll send you another email as soon as it ships.</p>
 
-      Order Summary:
-      ${orderDetails.items.map(item => `${item.name} (Qty: ${item.quantity}) - ₹${(item.price * item.quantity).toLocaleString()}`).join('\n')}
-      Subtotal: ₹${orderDetails.subtotal?.toLocaleString() || '0'}
-      Shipping: ${orderDetails.shipping === 0 ? 'FREE' : '₹' + orderDetails.shipping?.toLocaleString()}
-      Tax: ₹${orderDetails.tax?.toLocaleString() || '0'}
-      Total: ₹${orderDetails.total?.toLocaleString() || '0'}
+    <!-- Order Meta Box -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; margin-bottom: 24px;">
+      <tr>
+        <td style="padding: 14px 18px;">
+          <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748B; font-weight: 600; display: block; margin-bottom: 2px;">Order ID</span>
+          <span style="font-size: 15px; font-weight: 700; color: #0F172A; font-family: monospace;">#${orderId}</span>
+        </td>
+        <td align="right" style="padding: 14px 18px;">
+          <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748B; font-weight: 600; display: block; margin-bottom: 2px;">Date</span>
+          <span style="font-size: 13px; font-weight: 500; color: #0F172A;">${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+        </td>
+      </tr>
+    </table>
 
-      ${orderDetails.shippingAddress ? `Shipping Address:\n${orderDetails.shippingAddress.fullName || userName}\n${orderDetails.shippingAddress.address || ''}\n${orderDetails.shippingAddress.city || ''}, ${orderDetails.shippingAddress.state || ''} ${orderDetails.shippingAddress.pincode || ''}\nPhone: ${orderDetails.shippingAddress.phone || ''}` : ''}
+    <!-- Items Table -->
+    <p style="margin: 0 0 10px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #64748B;">Items Ordered</p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 20px; border-collapse: collapse;">
+      <tbody>
+        ${itemsRows}
+      </tbody>
+    </table>
 
-      Track your order: ${process.env.FRONTEND_URL || 'http://localhost:3000'}/orders
+    <!-- Price Breakdown -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 24px;">
+      <tr>
+        <td align="right" style="padding: 5px 0; font-size: 13px; color: #64748B;">Subtotal:</td>
+        <td align="right" width="120" style="padding: 5px 0; font-size: 13px; font-weight: 500; color: #0F172A;">₹${(orderDetails.subtotal || 0).toLocaleString('en-IN')}</td>
+      </tr>
+      <tr>
+        <td align="right" style="padding: 5px 0; font-size: 13px; color: #64748B;">Shipping:</td>
+        <td align="right" width="120" style="padding: 5px 0; font-size: 13px; font-weight: 600; color: ${orderDetails.shipping === 0 ? '#059669' : '#0F172A'};">
+          ${orderDetails.shipping === 0 ? 'FREE' : '₹' + (orderDetails.shipping || 0).toLocaleString('en-IN')}
+        </td>
+      </tr>
+      <tr>
+        <td align="right" style="padding: 5px 0; font-size: 13px; color: #64748B;">Tax (GST):</td>
+        <td align="right" width="120" style="padding: 5px 0; font-size: 13px; font-weight: 500; color: #0F172A;">₹${(orderDetails.tax || 0).toLocaleString('en-IN')}</td>
+      </tr>
+      <tr>
+        <td colspan="2" style="padding: 8px 0;"><div style="border-top: 1px solid #E2E8F0;"></div></td>
+      </tr>
+      <tr>
+        <td align="right" style="padding: 4px 0; font-size: 16px; font-weight: 700; color: #0F172A;">Total Paid:</td>
+        <td align="right" width="120" style="padding: 4px 0; font-size: 18px; font-weight: 800; color: #0F172A;">₹${(orderDetails.total || 0).toLocaleString('en-IN')}</td>
+      </tr>
+    </table>
 
-      If you have any questions, please contact our support team.
-      Atlas & Arrow
-      `;
+    <!-- Shipping Details -->
+    ${shippingInfo}
+
+    <!-- Call to action button -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top: 10px;">
+      <tr>
+        <td align="center">
+          <a href="${FRONTEND_BASE_URL}/orders" style="display: inline-block; background-color: #0F172A; color: #FFFFFF; font-size: 14px; font-weight: 600; text-decoration: none; padding: 13px 32px; border-radius: 6px; letter-spacing: 0.3px;">View Order in Account →</a>
+        </td>
+      </tr>
+    </table>
+  `;
+
+  const htmlContent = getEmailWrapper(`Order Confirmed - #${orderId}`, bodyHtml);
+
   try {
     const { data, error } = await resend.emails.send({
       from: 'Atlas & Arrow <noreply@atlasarrow.me>',
